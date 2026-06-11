@@ -31,11 +31,17 @@ export const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuthStore();
 
   // Component UI States
+  const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [theme, setTheme] = useState("light");
+
+  // Set mounted on client mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Sync Search Query state with URL params
   useEffect(() => {
@@ -151,7 +157,7 @@ export const Navbar = () => {
               className="p-2.5 text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-900 rounded-xl transition-colors"
               aria-label="Toggle Theme"
             >
-              {theme === "light" ? (
+              {!mounted || theme === "light" ? (
                 <Moon className="w-5 h-5" />
               ) : (
                 <Sun className="w-5 h-5" />
@@ -165,7 +171,7 @@ export const Navbar = () => {
               aria-label="Wishlist"
             >
               <Heart className="w-5 h-5" />
-              {wishlistItems.length > 0 && (
+              {mounted && wishlistItems.length > 0 && (
                 <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-indigo-600 rounded-full">
                   {wishlistItems.length}
                 </span>
@@ -179,7 +185,7 @@ export const Navbar = () => {
               aria-label="Cart"
             >
               <ShoppingBag className="w-5 h-5" />
-              {totalCartCount > 0 && (
+              {mounted && totalCartCount > 0 && (
                 <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-indigo-600 rounded-full animate-scale-in">
                   {totalCartCount}
                 </span>
@@ -188,7 +194,7 @@ export const Navbar = () => {
 
             {/* User Profile / Login */}
             <div className="relative">
-              {isAuthenticated ? (
+              {mounted && isAuthenticated ? (
                 <>
                   <button
                     onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
@@ -281,7 +287,7 @@ export const Navbar = () => {
               </Link>
             ))}
 
-            {!isAuthenticated && (
+            {(!mounted || !isAuthenticated) && (
               <div className="border-t border-slate-100 dark:border-zinc-850 pt-4 mt-2">
                 <Link
                   href="/login"
