@@ -136,7 +136,7 @@ export const Navbar = () => {
           {/* Search Bar */}
           <form
             onSubmit={handleSearchSubmit}
-            className="relative flex-1 max-w-md mx-2 sm:mx-6"
+            className="relative flex-1 max-w-md mx-2 sm:mx-6 hidden md:block"
           >
             <input
               type="text"
@@ -267,8 +267,20 @@ export const Navbar = () => {
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-slate-100 dark:border-zinc-850 bg-white dark:bg-zinc-950 p-4 animate-in slide-in-from-top duration-200">
+        <div className="lg:hidden border-t border-slate-100 dark:border-zinc-855 bg-white dark:bg-zinc-950 p-4 animate-in slide-in-from-top duration-200">
           <div className="flex flex-col gap-3">
+            {/* Search Input in Mobile Drawer */}
+            <form onSubmit={handleSearchSubmit} className="relative w-full mb-1">
+              <input
+                type="text"
+                placeholder="Search products, brands, categories..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-zinc-850 rounded-xl outline-none focus:bg-white dark:focus:bg-zinc-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-slate-900 dark:text-zinc-100 transition-all duration-200"
+              />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-500 pointer-events-none" />
+            </form>
+
             <p className="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">
               Categories
             </p>
