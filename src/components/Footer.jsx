@@ -85,7 +85,7 @@ export const Footer = () => {
             <div className="flex items-center gap-4 mt-2">
               <a
                 href="#"
-                className="hover:text-indigo-400 transition-colors"
+                className="text-slate-400 hover:text-indigo-400 transition-colors"
                 aria-label="X"
               >
                 <svg className="w-4.5 h-4.5 fill-current" viewBox="0 0 24 24">
@@ -94,7 +94,7 @@ export const Footer = () => {
               </a>
               <a
                 href="#"
-                className="hover:text-indigo-400 transition-colors"
+                className="text-slate-400 hover:text-indigo-400 transition-colors"
                 aria-label="LinkedIn"
               >
                 <svg className="w-4.5 h-4.5 fill-current" viewBox="0 0 24 24">
@@ -103,7 +103,7 @@ export const Footer = () => {
               </a>
               <a
                 href="#"
-                className="hover:text-indigo-400 transition-colors"
+                className="text-slate-400 hover:text-indigo-400 transition-colors"
                 aria-label="GitHub"
               >
                 <svg className="w-4.5 h-4.5 fill-current" viewBox="0 0 24 24">
@@ -116,7 +116,7 @@ export const Footer = () => {
               </a>
               <a
                 href="#"
-                className="hover:text-indigo-400 transition-colors"
+                className="text-slate-400 hover:text-indigo-400 transition-colors"
                 aria-label="Instagram"
               >
                 <svg className="w-4.5 h-4.5 fill-current" viewBox="0 0 24 24">
@@ -136,7 +136,7 @@ export const Footer = () => {
                 <Link
                   key={cat}
                   href={`/products?category=${encodeURIComponent(cat)}`}
-                  className="hover:text-white transition-colors"
+                  className="text-slate-400 hover:text-white transition-colors"
                 >
                   {cat}
                 </Link>
@@ -150,19 +150,19 @@ export const Footer = () => {
               Customer Care
             </h4>
             <div className="flex flex-col gap-2.5 text-sm">
-              <a href="#" className="hover:text-white transition-colors">
+              <a href="#" className="text-slate-400 hover:text-white transition-colors">
                 Help Center
               </a>
-              <a href="#" className="hover:text-white transition-colors">
+              <a href="#" className="text-slate-400 hover:text-white transition-colors">
                 Track Your Order
               </a>
-              <a href="#" className="hover:text-white transition-colors">
+              <a href="#" className="text-slate-400 hover:text-white transition-colors">
                 Returns & Exchanges
               </a>
-              <a href="#" className="hover:text-white transition-colors">
+              <a href="#" className="text-slate-400 hover:text-white transition-colors">
                 Shipping & Delivery
               </a>
-              <a href="#" className="hover:text-white transition-colors">
+              <a href="#" className="text-slate-400 hover:text-white transition-colors">
                 Terms & Conditions
               </a>
             </div>
