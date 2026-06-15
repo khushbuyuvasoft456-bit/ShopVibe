@@ -10,9 +10,9 @@ export default function HomePage() {
   const categoriesList = [
     "Electronics",
     "Fashion",
-    "Home & Kitchen",
     "Beauty",
     "Sports",
+    "Home & Kitchen",
   ];
   const featuredProducts = DUMMY_PRODUCTS.filter((p) => p.isFeatured).slice(
     0,
