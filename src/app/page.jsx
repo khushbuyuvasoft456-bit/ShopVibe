@@ -16,7 +16,7 @@ export default function HomePage() {
   ];
   const featuredProducts = DUMMY_PRODUCTS.filter((p) => p.isFeatured).slice(
     0,
-    4,
+    8,
   );
   const bestSellers = DUMMY_PRODUCTS.filter((p) => p.isBestSeller).slice(0, 4);
   const newArrivals = DUMMY_PRODUCTS.filter((p) => p.isNewArrival).slice(0, 4);
