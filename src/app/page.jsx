@@ -3,6 +3,7 @@ import HeroBanner from "@/components/HeroBanner";
 import CategoryCard from "@/components/CategoryCard";
 import ProductCard from "@/components/ProductCard";
 import Testimonials from "@/components/Testimonials";
+import BestSellersSection from "@/components/BestSellersSection";
 import { DUMMY_PRODUCTS } from "@/constants/dummyData";
 
 export default function HomePage() {
@@ -18,7 +19,6 @@ export default function HomePage() {
     0,
     8,
   );
-  const bestSellers = DUMMY_PRODUCTS.filter((p) => p.isBestSeller).slice(0, 4);
   const newArrivals = DUMMY_PRODUCTS.filter((p) => p.isNewArrival).slice(0, 4);
 
   return (
@@ -63,21 +63,7 @@ export default function HomePage() {
       </section>
 
       {/* Best Sellers Section */}
-      <section className="animate-fade-in-up">
-        <div className="flex flex-col gap-1 mb-8">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-zinc-50 tracking-tight">
-            Best Sellers
-          </h2>
-          <p className="text-sm text-slate-500 dark:text-zinc-450">
-            The community's most-loved products flying off the shelves.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {bestSellers.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
+      <BestSellersSection />
 
       {/* New Arrivals Section */}
       <section className="animate-fade-in-up">
