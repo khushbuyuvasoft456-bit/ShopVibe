@@ -33,7 +33,7 @@ export const HeroBanner = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mt-2">
             <Link
               href="/products"
-              className="inline-flex items-center justify-center px-6 py-3.5 bg-indigo-650 hover:bg-indigo-750 text-white font-bold rounded-xl shadow-lg shadow-indigo-700/20 transition-all transform active:scale-98"
+              className="inline-flex items-center justify-center px-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-700/20 transition-all transform active:scale-98"
             >
               Shop Collection <ArrowRight className="w-4 h-4 ml-2" />
             </Link>
