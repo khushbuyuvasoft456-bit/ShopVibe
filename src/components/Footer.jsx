@@ -8,14 +8,38 @@ import { CATEGORIES } from "@/constants/dummyData";
 export const Footer = () => {
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleSubscribe = (e) => {
     e.preventDefault();
-    if (email.trim() && email.includes("@")) {
-      setSubscribed(true);
-      setEmail("");
-      setTimeout(() => setSubscribed(false), 3000);
+    setError("");
+    setSuccess("");
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError("Email address is required.");
+      return;
     }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    setSubscribed(true);
+    setSuccess("Awesome! You've successfully subscribed.");
+    setEmail("");
+    setTimeout(() => {
+      setSubscribed(false);
+      setSuccess("");
+    }, 4000);
+  };
+
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value);
+    if (error) setError("");
   };
 
   return (
@@ -35,16 +59,22 @@ export const Footer = () => {
           <div>
             <form
               onSubmit={handleSubscribe}
+              noValidate
               className="relative flex items-center w-full"
             >
               <input
                 type="email"
                 placeholder="Enter your email address"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={handleEmailChange}
                 disabled={subscribed}
-                className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-white placeholder-slate-500 text-sm transition-all"
-                required
+                className={`w-full px-4 py-3 bg-slate-900 border rounded-xl outline-none focus:ring-1 text-white placeholder-slate-500 text-sm transition-all ${
+                  error
+                    ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500"
+                    : success
+                    ? "border-emerald-500 focus:border-emerald-500 focus:ring-emerald-500"
+                    : "border-slate-800 focus:border-indigo-500 focus:ring-indigo-500"
+                }`}
               />
 
               <button
@@ -60,6 +90,16 @@ export const Footer = () => {
                 {subscribed ? "Subbed!" : <Send className="w-4 h-4" />}
               </button>
             </form>
+            {error && (
+              <p className="text-xs text-rose-500 mt-2 font-medium">
+                {error}
+              </p>
+            )}
+            {success && (
+              <p className="text-xs text-emerald-500 mt-2 font-medium">
+                {success}
+              </p>
+            )}
           </div>
         </div>
       </div>
