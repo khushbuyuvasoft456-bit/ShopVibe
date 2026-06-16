@@ -340,7 +340,7 @@ export const DUMMY_PRODUCTS = [
     rating: 4.9,
     reviewCount: 54,
     images: [
-      "https://images.unsplash.com/photo-1517256064527-09c53b2d0bc6?w=800&auto=format&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1518057111178-44a106bad636?w=800&auto=format&fit=crop&q=80",
       "https://images.unsplash.com/photo-1579888944880-d983411b8cb3?w=800&auto=format&fit=crop&q=80",
     ],
     category: "Home & Kitchen",

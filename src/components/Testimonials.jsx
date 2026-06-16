@@ -165,6 +165,7 @@ export const Testimonials = () => {
                         src={test.avatar}
                         alt={test.name}
                         fill
+                        sizes="40px"
                         className="object-cover"
                       />
                     </div>
