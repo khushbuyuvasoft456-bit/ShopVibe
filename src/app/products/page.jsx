@@ -194,7 +194,7 @@ function ProductsContent() {
 
           {/* Products Loading / Error / Results Grid */}
           {loading ? (
-            <ProductGridSkeleton count={8} />
+            <ProductGridSkeleton count={8} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6" />
           ) : paginatedProducts.length === 0 ? (
             <div className="text-center py-20 bg-white dark:bg-zinc-900 rounded-3xl border border-slate-100 dark:border-zinc-800 p-8">
               <Search className="w-12 h-12 text-slate-300 mx-auto mb-4" />
