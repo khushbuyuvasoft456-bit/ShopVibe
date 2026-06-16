@@ -8,18 +8,22 @@ import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore } from "@/store/useWishlistStore";
 import Rating from "./Rating";
 
+// Stable placeholder image if no image is available
+const PLACEHOLDER_IMAGE = "https://images.unsplash.com/photo-1518057111178-44a106bad636?w=600&auto=format&fit=crop&q=80";
+
 export const ProductCard = ({ product }) => {
   const {
-    id,
-    name,
-    price,
-    originalPrice,
-    discount,
-    rating,
-    reviewCount,
-    images,
-    category,
-  } = product;
+    id = "",
+    name = "Unnamed Product",
+    price = 0,
+    originalPrice = 0,
+    discount = 0,
+    rating = 0,
+    reviewCount = 0,
+    images = [],
+    category = "Uncategorized",
+  } = product || {};
+
   const addItem = useCartStore((state) => state.addItem);
   const { toggleWishlist, isInWishlist } = useWishlistStore();
   const isFav = isInWishlist(id);
@@ -29,9 +33,11 @@ export const ProductCard = ({ product }) => {
   const handleAddToCart = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    // Use first available variant or none
-    const defaultColor = product.variants.colors?.[0]?.name;
-    const defaultSize = product.variants.sizes?.[0];
+    if (!product) return;
+
+    // Use first available variant or none safely
+    const defaultColor = product.variants?.colors?.[0]?.name;
+    const defaultSize = product.variants?.sizes?.[0];
 
     addItem(product, 1, defaultColor, defaultSize);
     setAdded(true);
@@ -41,6 +47,7 @@ export const ProductCard = ({ product }) => {
   const handleWishlistToggle = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!product) return;
     toggleWishlist(product);
   };
 
@@ -52,7 +59,7 @@ export const ProductCard = ({ product }) => {
         className="relative block aspect-square w-full overflow-hidden bg-slate-100 dark:bg-zinc-800"
       >
         <Image
-          src={images[0]}
+          src={images[0] || PLACEHOLDER_IMAGE}
           alt={name}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -72,6 +79,7 @@ export const ProductCard = ({ product }) => {
           onClick={handleWishlistToggle}
           className="absolute top-3 right-3 p-2 bg-white/95 dark:bg-zinc-950/95 border border-slate-100 dark:border-zinc-800 rounded-full shadow-sm text-slate-400 hover:text-rose-500 dark:text-zinc-500 dark:hover:text-rose-500 transition-colors transform active:scale-90"
           aria-label={isFav ? "Remove from wishlist" : "Add to wishlist"}
+          disabled={!id}
         >
           <Heart
             className={`w-4.5 h-4.5 ${isFav ? "fill-rose-500 text-rose-500" : ""}`}
@@ -119,6 +127,7 @@ export const ProductCard = ({ product }) => {
                 : "bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-indigo-600 dark:hover:border-indigo-600"
             }`}
             aria-label="Add to cart"
+            disabled={!product}
           >
             {added ? (
               <Check className="w-5 h-5 animate-scale-in" />
@@ -131,4 +140,5 @@ export const ProductCard = ({ product }) => {
     </div>
   );
 };
+
 export default ProductCard;

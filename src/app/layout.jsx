@@ -39,7 +39,7 @@ export default function RootLayout({ children }) {
       <head>
         <Script src="/theme-init.js" strategy="beforeInteractive" />
       </head>
-      <body className="min-h-full flex flex-col bg-white text-slate-900 dark:bg-zinc-950 dark:text-zinc-50 transition-colors duration-250">
+      <body className="min-h-full flex flex-col bg-white text-slate-900 dark:bg-zinc-950 dark:text-zinc-50 transition-colors duration-250" suppressHydrationWarning>
         <StoreProvider>
           <Suspense
             fallback={
