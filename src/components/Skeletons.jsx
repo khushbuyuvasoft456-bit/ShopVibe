@@ -18,9 +18,9 @@ export const ProductCardSkeleton = () => {
   );
 };
 
-export const ProductGridSkeleton = ({ count = 8 }) => {
+export const ProductGridSkeleton = ({ count = 8, className = "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" }) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    <div className={className}>
       {Array.from({ length: count }).map((_, i) => (
         <ProductCardSkeleton key={i} />
       ))}
