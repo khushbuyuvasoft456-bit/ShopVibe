@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   Search,
   ShoppingBag,
@@ -24,6 +24,7 @@ import { CATEGORIES } from "@/constants/dummyData";
 export const Navbar = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
 
   // Zustand Store states
   const cartItems = useCartStore((state) => state.items);
@@ -47,6 +48,32 @@ export const Navbar = () => {
   useEffect(() => {
     setSearchQuery(searchParams.get("search") || "");
   }, [searchParams]);
+
+  // Handle instant search on search query change (debounced)
+  useEffect(() => {
+    const urlSearch = searchParams.get("search") || "";
+    if (searchQuery === urlSearch) {
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (searchQuery.trim()) {
+        params.set("search", searchQuery.trim());
+      } else {
+        params.delete("search");
+      }
+      params.set("page", "1"); // reset page on search filter change
+
+      if (pathname === "/products") {
+        router.replace(`/products?${params.toString()}`);
+      } else {
+        router.push(`/products?${params.toString()}`);
+      }
+    }, 250); // 250ms debounce
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery, searchParams, pathname, router]);
 
   // Handle Theme Toggle
   useEffect(() => {
@@ -76,10 +103,17 @@ export const Navbar = () => {
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
+    const params = new URLSearchParams(searchParams.toString());
     if (searchQuery.trim()) {
-      router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      params.set("search", searchQuery.trim());
     } else {
-      router.push("/products");
+      params.delete("search");
+    }
+    params.set("page", "1");
+    if (pathname === "/products") {
+      router.replace(`/products?${params.toString()}`);
+    } else {
+      router.push(`/products?${params.toString()}`);
     }
   };
 
