@@ -182,6 +182,7 @@ function ProductsContent() {
 
   // Fetch products when URL parameters change
   useEffect(() => {
+    let active = true;
     const fetchFilteredProducts = async () => {
       setLoading(true);
       try {
@@ -193,14 +194,23 @@ function ProductsContent() {
           urlMaxPrice,
           urlMinRating,
         );
-        setProducts(data);
+        if (active) {
+          setProducts(data);
+        }
       } catch (err) {
-        console.error("Failed to load products:", err);
+        if (active) {
+          console.error("Failed to load products:", err);
+        }
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     };
     fetchFilteredProducts();
+    return () => {
+      active = false;
+    };
   }, [urlCategory, urlSearch, urlSort, urlMinPrice, urlMaxPrice, urlMinRating]);
 
   // Handle URL filters updates
