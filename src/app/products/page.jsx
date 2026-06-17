@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { SlidersHorizontal, ArrowUpDown, Search, X } from "lucide-react";
+import { SlidersHorizontal, ArrowUpDown, Search, X, Star } from "lucide-react";
 import { ProductService } from "@/services/api";
 import ProductCard from "@/components/ProductCard";
 import Breadcrumb from "@/components/Breadcrumb";
@@ -12,6 +12,156 @@ import { CATEGORIES } from "@/constants/dummyData";
 
 const ITEMS_PER_PAGE = 8;
 
+// Filter Controls Component (shared between desktop sidebar and mobile drawer)
+function FilterControls({
+  urlCategory,
+  urlMinPrice,
+  urlMaxPrice,
+  urlMinRating,
+  updateFilters,
+  onFilterApply,
+}) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [localMinPrice, setLocalMinPrice] = useState(urlMinPrice || "");
+  const [localMaxPrice, setLocalMaxPrice] = useState(urlMaxPrice || "");
+
+  useEffect(() => {
+    setLocalMinPrice(urlMinPrice || "");
+  }, [urlMinPrice]);
+
+  useEffect(() => {
+    setLocalMaxPrice(urlMaxPrice || "");
+  }, [urlMaxPrice]);
+
+  const handleApplyPrice = (e) => {
+    if (e) e.preventDefault();
+    const params = new URLSearchParams(searchParams.toString());
+    
+    if (localMinPrice) params.set("minPrice", localMinPrice);
+    else params.delete("minPrice");
+    
+    if (localMaxPrice) params.set("maxPrice", localMaxPrice);
+    else params.delete("maxPrice");
+    
+    params.set("page", "1");
+    router.push(`/products?${params.toString()}`);
+    if (onFilterApply) onFilterApply();
+  };
+
+  const handleRatingSelect = (rating) => {
+    updateFilters("minRating", rating === urlMinRating ? "" : rating);
+    if (onFilterApply) onFilterApply();
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Category Filter */}
+      <div className="space-y-3">
+        <h4 className="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">
+          Categories
+        </h4>
+        <div className="flex flex-col gap-1">
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => {
+                updateFilters("category", cat);
+                if (onFilterApply) onFilterApply();
+              }}
+              className={`text-left text-sm font-semibold py-1.5 px-3 rounded-xl transition-all ${
+                urlCategory === cat
+                  ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold"
+                  : "text-slate-600 hover:text-indigo-650 dark:text-zinc-400 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-zinc-800/40"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <hr className="border-slate-100 dark:border-zinc-800/60" />
+
+      {/* Price Range Filter */}
+      <div className="space-y-3">
+        <h4 className="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">
+          Price Range
+        </h4>
+        <form onSubmit={handleApplyPrice} className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <span className="absolute left-2.5 top-1.5 text-xs font-semibold text-slate-400">$</span>
+              <input
+                type="number"
+                placeholder="Min"
+                value={localMinPrice}
+                onChange={(e) => setLocalMinPrice(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-zinc-800/50 text-xs font-semibold pl-5 pr-2 py-1.5 border border-transparent dark:border-transparent rounded-xl focus:border-indigo-500 focus:bg-white dark:focus:bg-zinc-900 outline-none transition-all dark:text-zinc-200"
+              />
+            </div>
+            <span className="text-slate-400 dark:text-zinc-500 font-medium text-xs">to</span>
+            <div className="relative flex-1">
+              <span className="absolute left-2.5 top-1.5 text-xs font-semibold text-slate-400">$</span>
+              <input
+                type="number"
+                placeholder="Max"
+                value={localMaxPrice}
+                onChange={(e) => setLocalMaxPrice(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-zinc-800/50 text-xs font-semibold pl-5 pr-2 py-1.5 border border-transparent dark:border-transparent rounded-xl focus:border-indigo-500 focus:bg-white dark:focus:bg-zinc-900 outline-none transition-all dark:text-zinc-200"
+              />
+            </div>
+          </div>
+          <button
+            type="submit"
+            className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm shadow-indigo-600/10 cursor-pointer"
+          >
+            Apply Price
+          </button>
+        </form>
+      </div>
+
+      <hr className="border-slate-100 dark:border-zinc-800/60" />
+
+      {/* Rating Filter */}
+      <div className="space-y-3">
+        <h4 className="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider">
+          Rating
+        </h4>
+        <div className="flex flex-col gap-1">
+          {[4, 3, 2, 1].map((rating) => {
+            const isSelected = urlMinRating === rating.toString();
+            return (
+              <button
+                key={rating}
+                onClick={() => handleRatingSelect(rating.toString())}
+                className={`flex items-center gap-2 py-1.5 px-3 rounded-xl text-left text-sm transition-all ${
+                  isSelected
+                    ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold"
+                    : "text-slate-600 hover:text-indigo-650 dark:text-zinc-400 dark:hover:text-indigo-400 hover:bg-slate-50 dark:hover:bg-zinc-800/40"
+                }`}
+              >
+                <div className="flex items-center text-amber-400 gap-0.5 shrink-0">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`w-3.5 h-3.5 ${
+                        i < rating ? "fill-amber-400 text-amber-400" : "text-slate-350 dark:text-zinc-750"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs font-semibold">& Up</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProductsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -20,6 +170,9 @@ function ProductsContent() {
   const urlCategory = searchParams.get("category") || "All";
   const urlSearch = searchParams.get("search") || "";
   const urlSort = searchParams.get("sort") || "popular";
+  const urlMinPrice = searchParams.get("minPrice") || "";
+  const urlMaxPrice = searchParams.get("maxPrice") || "";
+  const urlMinRating = searchParams.get("minRating") || "";
   const urlPage = parseInt(searchParams.get("page") || "1", 10);
 
   // Local states
@@ -36,6 +189,9 @@ function ProductsContent() {
           urlCategory,
           urlSearch,
           urlSort,
+          urlMinPrice,
+          urlMaxPrice,
+          urlMinRating,
         );
         setProducts(data);
       } catch (err) {
@@ -45,12 +201,16 @@ function ProductsContent() {
       }
     };
     fetchFilteredProducts();
-  }, [urlCategory, urlSearch, urlSort]);
+  }, [urlCategory, urlSearch, urlSort, urlMinPrice, urlMaxPrice, urlMinRating]);
 
   // Handle URL filters updates
   const updateFilters = (key, value) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set(key, value);
+    if (value === "" || value === null || value === undefined || (key === "category" && value === "All")) {
+      params.delete(key);
+    } else {
+      params.set(key, value);
+    }
     params.set("page", "1"); // reset page on filter change
     router.push(`/products?${params.toString()}`);
   };
@@ -94,6 +254,9 @@ function ProductsContent() {
               </h3>
               {(urlCategory !== "All" ||
                 urlSearch ||
+                urlMinPrice ||
+                urlMaxPrice ||
+                urlMinRating ||
                 urlSort !== "popular") && (
                 <button
                   onClick={clearFilters}
@@ -104,27 +267,13 @@ function ProductsContent() {
               )}
             </div>
 
-            {/* Category Filter */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200">
-                Categories
-              </h4>
-              <div className="flex flex-col gap-2.5">
-                {CATEGORIES.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => updateFilters("category", cat)}
-                    className={`text-left text-sm font-medium py-1 transition-colors ${
-                      urlCategory === cat
-                        ? "text-indigo-650 font-bold"
-                        : "text-slate-600 hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-indigo-400"
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <FilterControls
+              urlCategory={urlCategory}
+              urlMinPrice={urlMinPrice}
+              urlMaxPrice={urlMaxPrice}
+              urlMinRating={urlMinRating}
+              updateFilters={updateFilters}
+            />
           </div>
         </aside>
 
@@ -171,7 +320,7 @@ function ProductsContent() {
           </div>
 
           {/* Active filters badges */}
-          {(urlCategory !== "All" || urlSearch) && (
+          {(urlCategory !== "All" || urlSearch || urlMinPrice || urlMaxPrice || urlMinRating) && (
             <div className="flex flex-wrap gap-2 mb-6">
               {urlCategory !== "All" && (
                 <span className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 text-xs font-semibold rounded-full">
@@ -185,6 +334,29 @@ function ProductsContent() {
                 <span className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 text-xs font-semibold rounded-full">
                   Search: {urlSearch}
                   <button onClick={() => updateFilters("search", "")}>
+                    <X className="w-3 h-3 hover:text-indigo-900" />
+                  </button>
+                </span>
+              )}
+              {(urlMinPrice || urlMaxPrice) && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 text-xs font-semibold rounded-full">
+                  Price: {urlMinPrice ? `$${urlMinPrice}` : "$0"} - {urlMaxPrice ? `$${urlMaxPrice}` : "Any"}
+                  <button
+                    onClick={() => {
+                      const params = new URLSearchParams(searchParams.toString());
+                      params.delete("minPrice");
+                      params.delete("maxPrice");
+                      router.push(`/products?${params.toString()}`);
+                    }}
+                  >
+                    <X className="w-3 h-3 hover:text-indigo-900" />
+                  </button>
+                </span>
+              )}
+              {urlMinRating && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 text-xs font-semibold rounded-full">
+                  Rating: {urlMinRating}+ Stars
+                  <button onClick={() => updateFilters("minRating", "")}>
                     <X className="w-3 h-3 hover:text-indigo-900" />
                   </button>
                 </span>
@@ -239,8 +411,8 @@ function ProductsContent() {
           />
 
           {/* Drawer body */}
-          <div className="relative w-80 max-w-full bg-white dark:bg-zinc-900 h-full p-6 shadow-2xl flex flex-col gap-6 animate-in slide-in-from-right duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-4">
+          <div className="relative w-80 max-w-full bg-white dark:bg-zinc-900 h-full p-6 shadow-2xl flex flex-col gap-6 overflow-y-auto animate-in slide-in-from-right duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-4 shrink-0">
               <h3 className="font-bold text-slate-900 dark:text-zinc-50 flex items-center gap-2">
                 <SlidersHorizontal className="w-4.5 h-4.5" /> Filters
               </h3>
@@ -252,37 +424,21 @@ function ProductsContent() {
               </button>
             </div>
 
-            {/* Categories list */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200">
-                Categories
-              </h4>
-              <div className="flex flex-col gap-3">
-                {CATEGORIES.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => {
-                      updateFilters("category", cat);
-                      setMobileFiltersOpen(false);
-                    }}
-                    className={`text-left text-base font-semibold py-1.5 transition-colors ${
-                      urlCategory === cat
-                        ? "text-indigo-650 font-bold"
-                        : "text-slate-600 hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-indigo-400"
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <FilterControls
+              urlCategory={urlCategory}
+              urlMinPrice={urlMinPrice}
+              urlMaxPrice={urlMaxPrice}
+              urlMinRating={urlMinRating}
+              updateFilters={updateFilters}
+              onFilterApply={() => setMobileFiltersOpen(false)}
+            />
 
             <button
               onClick={() => {
                 clearFilters();
                 setMobileFiltersOpen(false);
               }}
-              className="mt-auto w-full py-3 border border-rose-500 text-rose-500 font-bold rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all text-center"
+              className="mt-auto w-full py-3 border border-rose-500 text-rose-500 font-bold rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all text-center shrink-0 cursor-pointer"
             >
               Clear All Filters
             </button>

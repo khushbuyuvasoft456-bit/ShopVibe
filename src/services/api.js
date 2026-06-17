@@ -44,7 +44,7 @@ apiClient.interceptors.response.use(
 
 // Reusable mock API methods simulating standard network latency (500ms)
 export const ProductService = {
-  getProducts: async (category, search, sort) => {
+  getProducts: async (category, search, sort, minPrice, maxPrice, minRating) => {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     let filtered = [...DUMMY_PRODUCTS];
@@ -63,6 +63,18 @@ export const ProductService = {
           p.description.toLowerCase().includes(q) ||
           p.category.toLowerCase().includes(q),
       );
+    }
+
+    if (minPrice !== undefined && minPrice !== null && minPrice !== "") {
+      filtered = filtered.filter((p) => p.price >= parseFloat(minPrice));
+    }
+
+    if (maxPrice !== undefined && maxPrice !== null && maxPrice !== "") {
+      filtered = filtered.filter((p) => p.price <= parseFloat(maxPrice));
+    }
+
+    if (minRating !== undefined && minRating !== null && minRating !== "") {
+      filtered = filtered.filter((p) => p.rating >= parseFloat(minRating));
     }
 
     if (sort) {
