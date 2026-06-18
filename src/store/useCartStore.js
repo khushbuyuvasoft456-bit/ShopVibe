@@ -112,19 +112,21 @@ export function CartProvider({ children }) {
   };
 
   const getTotals = () => {
-    const subtotal = items.reduce(
-      (sum, item) => sum + item.product.price * item.quantity,
-      0
+    const subtotal = parseFloat(
+      items.reduce(
+        (sum, item) => sum + item.product.price * item.quantity,
+        0
+      ).toFixed(2)
     );
-    const discount = subtotal * discountRate;
-    const subtotalAfterDiscount = subtotal - discount;
+    const discount = parseFloat((subtotal * discountRate).toFixed(2));
+    const subtotalAfterDiscount = parseFloat((subtotal - discount).toFixed(2));
 
     // Free shipping for orders above $150 (after discount)
     const shipping = subtotalAfterDiscount > 150 || subtotalAfterDiscount === 0 ? 0 : 10;
     
     // 8% tax rate applied to items price after discount
-    const tax = subtotalAfterDiscount * 0.08;
-    const total = subtotalAfterDiscount + shipping + tax;
+    const tax = parseFloat((subtotalAfterDiscount * 0.08).toFixed(2));
+    const total = parseFloat((subtotalAfterDiscount + shipping + tax).toFixed(2));
 
     return {
       subtotal,
