@@ -36,10 +36,9 @@ export const Input = forwardRef(
             className={`w-full px-4 py-2.5 bg-white dark:bg-zinc-900 border rounded-xl outline-none transition-all duration-200 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500
               ${leftIcon ? "pl-11" : ""} 
               ${rightIcon ? "pr-11" : ""}
-              ${
-                error
-                  ? "border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
-                  : "border-slate-200 dark:border-zinc-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              ${error
+                ? "border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
+                : "border-slate-200 dark:border-zinc-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
               } 
               ${className}`}
             {...props}
