@@ -3,8 +3,9 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Trash2, ShoppingBag, ArrowRight, X, Percent } from "lucide-react";
+import { Trash2, ShoppingBag, ArrowRight, X, Percent, Heart } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
+import { useWishlistStore } from "@/store/useWishlistStore";
 import Breadcrumb from "@/components/Breadcrumb";
 
 export default function CartPage() {
@@ -18,6 +19,8 @@ export default function CartPage() {
     removeCoupon,
     getTotals,
   } = useCartStore();
+
+  const { toggleWishlist, isInWishlist } = useWishlistStore();
 
   const [couponInput, setCouponInput] = useState("");
   const [couponMessage, setCouponMessage] = useState(null);
@@ -165,6 +168,24 @@ export default function CartPage() {
                       aria-label="Remove item"
                     >
                       <Trash2 className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        if (!isInWishlist(item.product.id)) {
+                          toggleWishlist(item.product);
+                        }
+                        removeItem(
+                          item.product.id,
+                          item.selectedColor,
+                          item.selectedSize,
+                        );
+                      }}
+                      className="text-slate-400 hover:text-rose-500 transition-colors p-1"
+                      title="Move to Wishlist"
+                      aria-label="Move to wishlist"
+                    >
+                      <Heart className="w-4 h-4" />
                     </button>
                   </div>
                 </div>

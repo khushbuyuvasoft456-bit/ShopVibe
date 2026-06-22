@@ -15,6 +15,7 @@ import {
   ChevronDown,
   LogOut,
   ShoppingBag as OrderIcon,
+  Check,
 } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
 import { useWishlistStore } from "@/store/useWishlistStore";
@@ -28,7 +29,7 @@ export const Navbar = () => {
 
   // Zustand Store states
   const cartItems = useCartStore((state) => state.items);
-  const wishlistItems = useWishlistStore((state) => state.items);
+  const { items: wishlistItems, notification, clearNotification } = useWishlistStore();
   const { user, isAuthenticated, logout } = useAuthStore();
 
   // Component UI States
@@ -345,6 +346,31 @@ export const Navbar = () => {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {mounted && notification && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-slate-900/95 dark:bg-zinc-900/95 text-white border border-slate-800 dark:border-zinc-800 rounded-2xl p-4 pr-5 shadow-2xl animate-fade-in-up max-w-sm backdrop-blur-md">
+          <div className={`p-2 rounded-xl ${notification.type === 'success' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+            {notification.type === 'success' ? (
+              <Check className="w-5 h-5" />
+            ) : (
+              <Heart className="w-5 h-5 fill-rose-500 text-rose-500" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold tracking-tight leading-snug">
+              {notification.message}
+            </p>
+          </div>
+          <button
+            onClick={clearNotification}
+            className="p-1 hover:bg-white/10 dark:hover:bg-zinc-800 rounded-lg text-slate-400 hover:text-white transition-colors ml-1.5 shrink-0"
+            aria-label="Close notification"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
     </header>
