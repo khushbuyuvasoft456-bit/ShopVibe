@@ -38,14 +38,27 @@ export function WishlistProvider({ children }) {
     }
   }, [items, isLoaded]);
 
+  const [notification, setNotification] = useState(null);
+
+  const showNotification = (message, type = "success") => {
+    setNotification({ message, type });
+    // Auto-clear notification after 3 seconds
+    const timer = setTimeout(() => {
+      setNotification((prev) => (prev?.message === message ? null : prev));
+    }, 3000);
+    return () => clearTimeout(timer);
+  };
+
   const toggleWishlist = (product) => {
-    setItems((prevItems) => {
-      const exists = prevItems.some((item) => item.id === product.id);
-      if (exists) {
-        return prevItems.filter((item) => item.id !== product.id);
-      }
-      return [...prevItems, product];
-    });
+    if (!product) return;
+    const exists = items.some((item) => item.id === product.id);
+    if (exists) {
+      setItems((prevItems) => prevItems.filter((item) => item.id !== product.id));
+      showNotification(`Removed "${product.name}" from your wishlist.`, "info");
+    } else {
+      setItems((prevItems) => [...prevItems, product]);
+      showNotification(`Added "${product.name}" to your wishlist!`, "success");
+    }
   };
 
   const isInWishlist = (productId) => {
@@ -54,6 +67,7 @@ export function WishlistProvider({ children }) {
 
   const clearWishlist = () => {
     setItems([]);
+    showNotification("Wishlist cleared successfully.", "info");
   };
 
   const value = {
@@ -61,6 +75,8 @@ export function WishlistProvider({ children }) {
     toggleWishlist,
     isInWishlist,
     clearWishlist,
+    notification,
+    clearNotification: () => setNotification(null),
   };
 
   return <WishlistContext.Provider value={value}>{children}</WishlistContext.Provider>;
