@@ -77,8 +77,8 @@ export function CartProvider({ children }) {
     setItems((prevItems) =>
       prevItems.map((item) =>
         item.product.id === productId &&
-        item.selectedColor === color &&
-        item.selectedSize === size
+          item.selectedColor === color &&
+          item.selectedSize === size
           ? { ...item, quantity: Math.max(1, quantity) }
           : item
       )
@@ -123,7 +123,7 @@ export function CartProvider({ children }) {
 
     // Free shipping for orders above $150 (after discount)
     const shipping = subtotalAfterDiscount > 150 || subtotalAfterDiscount === 0 ? 0 : 10;
-    
+
     // 8% tax rate applied to items price after discount
     const tax = parseFloat((subtotalAfterDiscount * 0.08).toFixed(2));
     const total = parseFloat((subtotalAfterDiscount + shipping + tax).toFixed(2));

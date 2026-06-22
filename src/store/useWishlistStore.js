@@ -5,6 +5,7 @@ const WishlistContext = createContext(null);
 
 export function WishlistProvider({ children }) {
   const [items, setItems] = useState([]);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -18,11 +19,14 @@ export function WishlistProvider({ children }) {
       }
     } catch (e) {
       console.error("Failed to load wishlist state from localStorage", e);
+    } finally {
+      setIsLoaded(true);
     }
   }, []);
 
   // Save to localStorage when state changes
   useEffect(() => {
+    if (!isLoaded) return;
     try {
       const data = {
         state: { items },
@@ -32,7 +36,7 @@ export function WishlistProvider({ children }) {
     } catch (e) {
       console.error("Failed to save wishlist state to localStorage", e);
     }
-  }, [items]);
+  }, [items, isLoaded]);
 
   const toggleWishlist = (product) => {
     setItems((prevItems) => {
