@@ -10,20 +10,26 @@ import Breadcrumb from "@/components/Breadcrumb";
 import Rating from "@/components/Rating";
 
 export default function WishlistPage() {
-  const { items, toggleWishlist } = useWishlistStore();
+  const { items, toggleWishlist, clearWishlist, showNotification } = useWishlistStore();
   const addItem = useCartStore((state) => state.addItem);
 
-  // Success add state tracks product id
-  const [addedId, setAddedId] = useState(null);
-
-  const handleAddToCart = (product) => {
-    // Select default variants if available
-    const color = product.variants.colors?.[0]?.name;
-    const size = product.variants.sizes?.[0];
+  const handleMoveToCart = (product) => {
+    const color = product.variants?.colors?.[0]?.name;
+    const size = product.variants?.sizes?.[0];
 
     addItem(product, 1, color, size);
-    setAddedId(product.id);
-    setTimeout(() => setAddedId(null), 2000);
+    toggleWishlist(product);
+    showNotification(`Moved "${product.name}" to cart!`, "success");
+  };
+
+  const handleAddAllToCart = () => {
+    items.forEach((product) => {
+      const color = product.variants?.colors?.[0]?.name;
+      const size = product.variants?.sizes?.[0];
+      addItem(product, 1, color, size);
+    });
+    clearWishlist();
+    showNotification("All items moved to cart successfully!", "success");
   };
 
   if (items.length === 0) {
@@ -54,17 +60,38 @@ export default function WishlistPage() {
     <div className="pb-20">
       <Breadcrumb items={[{ label: "Wishlist" }]} />
 
-      <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-zinc-50 tracking-tight mt-2">
-        My Wishlist
-      </h1>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-4 border-b border-slate-100 dark:border-zinc-850 pb-5">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-zinc-50 tracking-tight">
+            My Wishlist
+          </h1>
+          <span className="text-xs sm:text-sm font-bold text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-950/30 px-3 py-1 rounded-full">
+            {items.length} {items.length === 1 ? "item" : "items"}
+          </span>
+        </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleAddAllToCart}
+            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl shadow-md transition-all transform active:scale-95 cursor-pointer"
+          >
+            <ShoppingBag className="w-4 h-4" /> Move All to Cart
+          </button>
+          <button
+            onClick={clearWishlist}
+            className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 dark:border-zinc-800 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/20 text-slate-600 dark:text-zinc-450 text-sm font-bold rounded-xl transition-all transform active:scale-95 cursor-pointer"
+          >
+            <Trash2 className="w-4 h-4" /> Clear Wishlist
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-8">
         {items.map((product) => {
-          const isAdded = addedId === product.id;
           return (
             <div
               key={product.id}
-              className="group relative flex flex-col w-full bg-white dark:bg-zinc-900 border border-slate-105 dark:border-zinc-800 rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300"
+              className="group relative flex flex-col w-full bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-2xl overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
             >
               {/* Product Cover image */}
               <div className="relative aspect-square w-full bg-slate-50 dark:bg-zinc-850 overflow-hidden">
@@ -76,10 +103,17 @@ export default function WishlistPage() {
                   className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
                 />
 
+                {/* Discount Badge */}
+                {product.discount > 0 && (
+                  <div className="absolute top-3 left-3 bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                    -{product.discount}% OFF
+                  </div>
+                )}
+
                 {/* Remove button */}
                 <button
                   onClick={() => toggleWishlist(product)}
-                  className="absolute top-3 right-3 p-2 bg-white/95 dark:bg-zinc-950/95 border border-slate-100 dark:border-zinc-800 rounded-full text-rose-500 shadow-sm hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors"
+                  className="absolute top-3 right-3 p-2 bg-white/95 dark:bg-zinc-950/95 border border-slate-100 dark:border-zinc-800 rounded-full text-rose-500 shadow-sm hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors transform active:scale-90"
                   aria-label="Remove item"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -93,42 +127,37 @@ export default function WishlistPage() {
                 </span>
                 <Link
                   href={`/products/${product.id}`}
-                  className="font-bold text-sm text-slate-800 dark:text-zinc-100 hover:text-indigo-600 dark:hover:text-indigo-400 line-clamp-2 min-h-[40px]"
+                  className="font-semibold text-sm text-slate-800 dark:text-zinc-100 hover:text-indigo-600 dark:hover:text-indigo-400 line-clamp-2 min-h-[40px] transition-colors"
                 >
                   {product.name}
                 </Link>
 
                 {/* Rating */}
-                <div className="flex items-center gap-1 mt-2">
+                <div className="flex items-center gap-1.5 mt-2">
                   <Rating value={product.rating} size={12} />
-                  <span className="text-[11px] text-slate-400 font-semibold">
+                  <span className="text-[11px] text-slate-400 dark:text-zinc-550 font-semibold">
                     ({product.reviewCount})
                   </span>
                 </div>
 
                 {/* Price and Cart Action */}
                 <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-50 dark:border-zinc-850">
-                  <span className="font-extrabold text-base text-slate-900 dark:text-zinc-50">
-                    ${product.price.toFixed(2)}
-                  </span>
+                  <div className="flex flex-col">
+                    {product.discount > 0 && (
+                      <span className="text-xs text-slate-400 dark:text-zinc-500 line-through">
+                        ${product.originalPrice?.toFixed(2)}
+                      </span>
+                    )}
+                    <span className="font-extrabold text-base text-slate-900 dark:text-zinc-50">
+                      ${product.price.toFixed(2)}
+                    </span>
+                  </div>
 
                   <button
-                    onClick={() => handleAddToCart(product)}
-                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all transform active:scale-95 ${
-                      isAdded
-                        ? "bg-emerald-500 border border-emerald-500 text-white"
-                        : "bg-indigo-50 border border-indigo-100 text-indigo-600 hover:bg-indigo-600 hover:text-white dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-350 dark:hover:bg-indigo-600"
-                    }`}
+                    onClick={() => handleMoveToCart(product)}
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 border border-indigo-100 text-indigo-600 hover:bg-indigo-600 hover:text-white dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-indigo-600 rounded-xl text-xs font-bold transition-all transform active:scale-95"
                   >
-                    {isAdded ? (
-                      <>
-                        <Check className="w-3.5 h-3.5" /> Added
-                      </>
-                    ) : (
-                      <>
-                        <ShoppingBag className="w-3.5 h-3.5" /> Add
-                      </>
-                    )}
+                    <ShoppingBag className="w-3.5 h-3.5" /> Move to Cart
                   </button>
                 </div>
               </div>
