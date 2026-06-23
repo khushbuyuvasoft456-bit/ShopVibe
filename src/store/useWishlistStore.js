@@ -77,6 +77,7 @@ export function WishlistProvider({ children }) {
     clearWishlist,
     notification,
     clearNotification: () => setNotification(null),
+    showNotification,
   };
 
   return <WishlistContext.Provider value={value}>{children}</WishlistContext.Provider>;
