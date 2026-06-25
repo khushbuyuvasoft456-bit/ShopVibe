@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, ArrowRight, ShoppingBag } from "lucide-react";
+import { Mail, Lock, ArrowRight, ShoppingBag, Eye, EyeOff, Check } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
@@ -18,13 +18,25 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  // Real-time validation states
   const [fieldErrors, setFieldErrors] = useState({});
+  const [successFields, setSuccessFields] = useState({});
+  const [touched, setTouched] = useState({});
 
   // Forgot password states
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotMode, setForgotMode] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotMessage, setForgotMessage] = useState(null);
+
+  // Password visibility state
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Set document title for SEO
+  useEffect(() => {
+    document.title = "Sign In | ShopVibe";
+  }, []);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -33,22 +45,63 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, router]);
 
+  // Real-time validation logic
+  const validateField = (fieldName, value) => {
+    let errorMsg = null;
+    let isValid = false;
+
+    if (fieldName === "email") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!value.trim()) {
+        errorMsg = "Email Address is required.";
+      } else if (!emailRegex.test(value.trim())) {
+        errorMsg = "Please enter a valid email address.";
+      } else {
+        isValid = true;
+      }
+    } else if (fieldName === "password") {
+      if (!value) {
+        errorMsg = "Password is required.";
+      } else if (value.length < 6) {
+        errorMsg = "Password must be at least 6 characters.";
+      } else {
+        isValid = true;
+      }
+    } else if (fieldName === "forgotEmail") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!value.trim()) {
+        errorMsg = "Email Address is required.";
+      } else if (!emailRegex.test(value.trim())) {
+        errorMsg = "Please enter a valid email address.";
+      } else {
+        isValid = true;
+      }
+    }
+
+    setFieldErrors((prev) => ({ ...prev, [fieldName]: errorMsg }));
+    setSuccessFields((prev) => ({ ...prev, [fieldName]: isValid }));
+    return isValid;
+  };
+
+  const handleBlur = (fieldName) => {
+    setTouched((prev) => ({ ...prev, [fieldName]: true }));
+    if (fieldName === "email") validateField("email", email);
+    if (fieldName === "password") validateField("password", password);
+    if (fieldName === "forgotEmail") validateField("forgotEmail", forgotEmail);
+  };
+
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    setFieldErrors({});
 
-    // Client-side validations
-    const errors = {};
-    if (!email.includes("@")) {
-      errors.email = "Please enter a valid email address.";
-    }
-    if (password.length < 6) {
-      errors.password = "Password must be at least 6 characters.";
-    }
+    // Mark fields as touched
+    const allTouched = { email: true, password: true };
+    setTouched(allTouched);
 
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors);
+    const isEmailValid = validateField("email", email);
+    const isPasswordValid = validateField("password", password);
+
+    if (!isEmailValid || !isPasswordValid) {
       return;
     }
 
@@ -70,14 +123,25 @@ export default function LoginPage() {
 
   const handleForgotSubmit = async (e) => {
     e.preventDefault();
-    setForgotLoading(true);
     setForgotMessage(null);
+
+    // Mark forgot email as touched
+    setTouched((prev) => ({ ...prev, forgotEmail: true }));
+    const isForgotEmailValid = validateField("forgotEmail", forgotEmail);
+
+    if (!isForgotEmailValid) {
+      return;
+    }
+
+    setForgotLoading(true);
 
     try {
       const result = await forgotPassword(forgotEmail.trim());
       setForgotMessage({ success: result.success, text: result.message });
       if (result.success) {
         setForgotEmail("");
+        setTouched((prev) => ({ ...prev, forgotEmail: false }));
+        setSuccessFields((prev) => ({ ...prev, forgotEmail: false }));
       }
     } catch (err) {
       setForgotMessage({
@@ -145,7 +209,7 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <form onSubmit={handleLoginSubmit} className="space-y-4" noValidate>
                 <Input
                   label="Email Address"
                   type="email"
@@ -153,40 +217,63 @@ export default function LoginPage() {
                   placeholder="e.g. jane@example.com"
                   value={email}
                   onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (fieldErrors.email) {
-                      setFieldErrors((prev) => ({ ...prev, email: null }));
+                    const val = e.target.value;
+                    setEmail(val);
+                    if (touched.email) {
+                      validateField("email", val);
                     }
                   }}
+                  onBlur={() => handleBlur("email")}
                   leftIcon={<Mail className="w-4.5 h-4.5" />}
-                  error={fieldErrors.email}
+                  error={touched.email && fieldErrors.email}
+                  success={touched.email && successFields.email}
                   required
                 />
 
                 <Input
                   label="Password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   id="login-password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (fieldErrors.password) {
-                      setFieldErrors((prev) => ({ ...prev, password: null }));
+                    const val = e.target.value;
+                    setPassword(val);
+                    if (touched.password) {
+                      validateField("password", val);
                     }
                   }}
+                  onBlur={() => handleBlur("password")}
                   leftIcon={<Lock className="w-4.5 h-4.5" />}
-                  error={fieldErrors.password}
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="focus:outline-none text-slate-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+                      id="login-toggle-password"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4.5 h-4.5" />
+                      ) : (
+                        <Eye className="w-4.5 h-4.5" />
+                      )}
+                    </button>
+                  }
+                  error={touched.password && fieldErrors.password}
+                  success={touched.password && successFields.password}
                   required
                 />
 
                 <div className="flex justify-end pt-1">
                   <button
                     type="button"
+                    id="login-forgot-password-toggle"
                     onClick={() => {
                       setForgotMode(true);
                       setError(null);
                       setFieldErrors({});
+                      setSuccessFields({});
+                      setTouched({});
                     }}
                     className="text-xs font-bold text-indigo-650 dark:text-indigo-400 hover:underline cursor-pointer"
                   >
@@ -196,6 +283,7 @@ export default function LoginPage() {
 
                 <Button
                   type="submit"
+                  id="login-submit"
                   isLoading={loading}
                   className="w-full py-3 mt-2"
                   rightIcon={<ArrowRight className="w-4.5 h-4.5" />}
@@ -208,6 +296,7 @@ export default function LoginPage() {
                 Don't have an account?{" "}
                 <Link
                   href="/register"
+                  id="login-register-link"
                   className="text-indigo-600 dark:text-indigo-400 hover:underline"
                 >
                   Create account
@@ -230,27 +319,37 @@ export default function LoginPage() {
                   className={`p-3.5 border text-xs font-bold rounded-xl ${
                     forgotMessage.success
                       ? "bg-emerald-50 border-emerald-100 text-emerald-600 dark:bg-emerald-950/20 dark:border-emerald-900 dark:text-emerald-450"
-                      : "bg-rose-50 border-rose-100 text-rose-600 dark:bg-rose-950/20 dark:border-rose-900 dark:text-rose-455"
+                      : "bg-rose-50 border-rose-100 text-rose-650 dark:bg-rose-950/20 dark:border-rose-900 dark:text-rose-400"
                   }`}
                 >
                   {forgotMessage.text}
                 </div>
               )}
 
-              <form onSubmit={handleForgotSubmit} className="space-y-4">
+              <form onSubmit={handleForgotSubmit} className="space-y-4" noValidate>
                 <Input
                   label="Email Address"
                   type="email"
                   id="forgot-email"
                   placeholder="e.g. jane@example.com"
                   value={forgotEmail}
-                  onChange={(e) => setForgotEmail(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setForgotEmail(val);
+                    if (touched.forgotEmail) {
+                      validateField("forgotEmail", val);
+                    }
+                  }}
+                  onBlur={() => handleBlur("forgotEmail")}
                   leftIcon={<Mail className="w-4.5 h-4.5" />}
+                  error={touched.forgotEmail && fieldErrors.forgotEmail}
+                  success={touched.forgotEmail && successFields.forgotEmail}
                   required
                 />
 
                 <Button
                   type="submit"
+                  id="forgot-submit"
                   isLoading={forgotLoading}
                   className="w-full py-3 mt-2"
                 >
@@ -261,9 +360,13 @@ export default function LoginPage() {
               <div className="text-center text-xs font-semibold text-slate-450 pt-4 border-t border-slate-50 dark:border-zinc-850">
                 <button
                   type="button"
+                  id="forgot-back-toggle"
                   onClick={() => {
                     setForgotMode(false);
                     setForgotMessage(null);
+                    setFieldErrors({});
+                    setSuccessFields({});
+                    setTouched({});
                   }}
                   className="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                 >

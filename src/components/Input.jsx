@@ -1,10 +1,12 @@
 import React, { forwardRef } from "react";
+import { Check } from "lucide-react";
 
 export const Input = forwardRef(
   (
     {
       label,
       error,
+      success,
       leftIcon,
       rightIcon,
       containerClassName = "",
@@ -35,20 +37,26 @@ export const Input = forwardRef(
             ref={ref}
             className={`w-full px-4 py-2.5 bg-white dark:bg-zinc-900 border rounded-xl outline-none transition-all duration-200 text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-500
               ${leftIcon ? "pl-11" : ""} 
-              ${rightIcon ? "pr-11" : ""}
+              ${rightIcon || success ? "pr-11" : ""}
               ${error
                 ? "border-rose-500 focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
-                : "border-slate-200 dark:border-zinc-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                : success
+                  ? "border-emerald-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                  : "border-slate-200 dark:border-zinc-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
               } 
               ${className}`}
             {...props}
           />
 
-          {rightIcon && (
+          {rightIcon ? (
             <div className="absolute right-3.5 text-slate-400 dark:text-zinc-500 cursor-pointer">
               {rightIcon}
             </div>
-          )}
+          ) : success ? (
+            <div className="absolute right-3.5 text-emerald-500 pointer-events-none">
+              <Check className="w-4.5 h-4.5" />
+            </div>
+          ) : null}
         </div>
         {error && (
           <span className="text-xs text-rose-500 font-medium mt-0.5">
@@ -62,3 +70,4 @@ export const Input = forwardRef(
 
 Input.displayName = "Input";
 export default Input;
+
