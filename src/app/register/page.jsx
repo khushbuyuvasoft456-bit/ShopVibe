@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, Mail, Lock, ArrowRight, Sparkles } from "lucide-react";
+import { User, Mail, Lock, ArrowRight, Sparkles, Eye, EyeOff, Check } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
@@ -19,7 +19,20 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  // Real-time validation states
   const [fieldErrors, setFieldErrors] = useState({});
+  const [successFields, setSuccessFields] = useState({});
+  const [touched, setTouched] = useState({});
+  
+  // Password visibility states
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Set document title for SEO
+  useEffect(() => {
+    document.title = "Create Account | ShopVibe";
+  }, []);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -28,28 +41,74 @@ export default function RegisterPage() {
     }
   }, [isAuthenticated, router]);
 
+  // Real-time validation logic
+  const validateField = (fieldName, value, currentPasswordState = password) => {
+    let errorMsg = null;
+    let isValid = false;
+
+    if (fieldName === "name") {
+      if (!value.trim()) {
+        errorMsg = "Full Name is required.";
+      } else {
+        isValid = true;
+      }
+    } else if (fieldName === "email") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!value.trim()) {
+        errorMsg = "Email Address is required.";
+      } else if (!emailRegex.test(value.trim())) {
+        errorMsg = "Please enter a valid email address.";
+      } else {
+        isValid = true;
+      }
+    } else if (fieldName === "password") {
+      if (!value) {
+        errorMsg = "Password is required.";
+      } else if (value.length < 6) {
+        errorMsg = "Password must be at least 6 characters.";
+      } else {
+        isValid = true;
+      }
+    } else if (fieldName === "confirmPassword") {
+      if (!value) {
+        errorMsg = "Please confirm your password.";
+      } else if (value !== currentPasswordState) {
+        errorMsg = "Passwords do not match.";
+      } else {
+        isValid = true;
+      }
+    }
+
+    setFieldErrors((prev) => ({ ...prev, [fieldName]: errorMsg }));
+    setSuccessFields((prev) => ({ ...prev, [fieldName]: isValid }));
+    return isValid;
+  };
+
+  const handleBlur = (fieldName) => {
+    setTouched((prev) => ({ ...prev, [fieldName]: true }));
+    if (fieldName === "name") validateField("name", name);
+    if (fieldName === "email") validateField("email", email);
+    if (fieldName === "password") {
+      validateField("password", password);
+      if (confirmPassword) validateField("confirmPassword", confirmPassword, password);
+    }
+    if (fieldName === "confirmPassword") validateField("confirmPassword", confirmPassword, password);
+  };
+
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    setFieldErrors({});
 
-    const errors = {};
+    // Mark all fields as touched to trigger full validation
+    const allTouched = { name: true, email: true, password: true, confirmPassword: true };
+    setTouched(allTouched);
 
-    if (!name.trim()) {
-      errors.name = "Full Name is required.";
-    }
-    if (!email.includes("@")) {
-      errors.email = "Please enter a valid email address.";
-    }
-    if (password.length < 6) {
-      errors.password = "Password must be at least 6 characters.";
-    }
-    if (password !== confirmPassword) {
-      errors.confirmPassword = "Passwords do not match.";
-    }
+    const isNameValid = validateField("name", name);
+    const isEmailValid = validateField("email", email);
+    const isPasswordValid = validateField("password", password);
+    const isConfirmPasswordValid = validateField("confirmPassword", confirmPassword, password);
 
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors);
+    if (!isNameValid || !isEmailValid || !isPasswordValid || !isConfirmPasswordValid) {
       return;
     }
 
@@ -70,6 +129,11 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
+
+  // Password checklist helpers
+  const hasMinLength = password.length >= 6;
+  const hasNumber = /\d/.test(password);
+  const hasUppercase = /[A-Z]/.test(password);
 
   return (
     <div className="pb-20 max-w-4xl mx-auto">
@@ -126,73 +190,190 @@ export default function RegisterPage() {
               </div>
             )}
 
-            <form onSubmit={handleRegisterSubmit} className="space-y-4">
+            <form onSubmit={handleRegisterSubmit} className="space-y-4" noValidate>
               <Input
                 label="Full Name"
                 type="text"
+                id="register-name"
                 placeholder="e.g. Jane Doe"
                 value={name}
                 onChange={(e) => {
-                  setName(e.target.value);
-                  if (fieldErrors.name) {
-                    setFieldErrors((prev) => ({ ...prev, name: null }));
+                  const val = e.target.value;
+                  setName(val);
+                  if (touched.name) {
+                    validateField("name", val);
                   }
                 }}
+                onBlur={() => handleBlur("name")}
                 leftIcon={<User className="w-4.5 h-4.5" />}
-                error={fieldErrors.name}
+                error={touched.name && fieldErrors.name}
+                success={touched.name && successFields.name}
                 required
               />
 
               <Input
                 label="Email Address"
                 type="email"
+                id="register-email"
                 placeholder="e.g. jane@example.com"
                 value={email}
                 onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (fieldErrors.email) {
-                    setFieldErrors((prev) => ({ ...prev, email: null }));
+                  const val = e.target.value;
+                  setEmail(val);
+                  if (touched.email) {
+                    validateField("email", val);
                   }
                 }}
+                onBlur={() => handleBlur("email")}
                 leftIcon={<Mail className="w-4.5 h-4.5" />}
-                error={fieldErrors.email}
+                error={touched.email && fieldErrors.email}
+                success={touched.email && successFields.email}
                 required
               />
 
               <Input
                 label="Password"
-                type="password"
+                type={showPassword ? "text" : "password"}
+                id="register-password"
                 placeholder="Min. 6 characters"
                 value={password}
                 onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (fieldErrors.password) {
-                    setFieldErrors((prev) => ({ ...prev, password: null }));
+                  const val = e.target.value;
+                  setPassword(val);
+                  if (touched.password) {
+                    validateField("password", val, val);
+                  }
+                  if (touched.confirmPassword) {
+                    validateField("confirmPassword", confirmPassword, val);
                   }
                 }}
+                onBlur={() => handleBlur("password")}
                 leftIcon={<Lock className="w-4.5 h-4.5" />}
-                error={fieldErrors.password}
+                rightIcon={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="focus:outline-none text-slate-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+                    id="register-toggle-password"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4.5 h-4.5" />
+                    ) : (
+                      <Eye className="w-4.5 h-4.5" />
+                    )}
+                  </button>
+                }
+                error={touched.password && fieldErrors.password}
+                success={touched.password && successFields.password}
                 required
               />
 
+              {/* Password Strength Checklist */}
+              {password.length > 0 && (
+                <div className="p-3 bg-slate-50 dark:bg-zinc-850/50 rounded-xl border border-slate-100 dark:border-zinc-800 space-y-1.5 text-xs animate-scale-in">
+                  <p className="font-semibold text-slate-500 dark:text-zinc-400 mb-1">
+                    Password Strength Checklist:
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`w-3.5 h-3.5 rounded-full flex items-center justify-center transition-all ${
+                        hasMinLength
+                          ? "bg-emerald-500 text-white"
+                          : "bg-slate-200 dark:bg-zinc-800 text-slate-400"
+                      }`}
+                    >
+                      <Check className="w-2.5 h-2.5" />
+                    </div>
+                    <span
+                      className={`transition-colors ${
+                        hasMinLength
+                          ? "text-emerald-600 dark:text-emerald-400 font-medium"
+                          : "text-slate-500 dark:text-zinc-500"
+                      }`}
+                    >
+                      At least 6 characters
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`w-3.5 h-3.5 rounded-full flex items-center justify-center transition-all ${
+                        hasNumber
+                          ? "bg-emerald-500 text-white"
+                          : "bg-slate-200 dark:bg-zinc-800 text-slate-400"
+                      }`}
+                    >
+                      <Check className="w-2.5 h-2.5" />
+                    </div>
+                    <span
+                      className={`transition-colors ${
+                        hasNumber
+                          ? "text-emerald-600 dark:text-emerald-400 font-medium"
+                          : "text-slate-500 dark:text-zinc-500"
+                      }`}
+                    >
+                      Contains at least one number
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`w-3.5 h-3.5 rounded-full flex items-center justify-center transition-all ${
+                        hasUppercase
+                          ? "bg-emerald-500 text-white"
+                          : "bg-slate-200 dark:bg-zinc-800 text-slate-400"
+                      }`}
+                    >
+                      <Check className="w-2.5 h-2.5" />
+                    </div>
+                    <span
+                      className={`transition-colors ${
+                        hasUppercase
+                          ? "text-emerald-600 dark:text-emerald-400 font-medium"
+                          : "text-slate-500 dark:text-zinc-500"
+                      }`}
+                    >
+                      Contains at least one uppercase letter
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <Input
                 label="Confirm Password"
-                type="password"
+                type={showConfirmPassword ? "text" : "password"}
+                id="register-confirm-password"
                 placeholder="Re-enter password"
                 value={confirmPassword}
                 onChange={(e) => {
-                  setConfirmPassword(e.target.value);
-                  if (fieldErrors.confirmPassword) {
-                    setFieldErrors((prev) => ({ ...prev, confirmPassword: null }));
+                  const val = e.target.value;
+                  setConfirmPassword(val);
+                  if (touched.confirmPassword) {
+                    validateField("confirmPassword", val, password);
                   }
                 }}
+                onBlur={() => handleBlur("confirmPassword")}
                 leftIcon={<Lock className="w-4.5 h-4.5" />}
-                error={fieldErrors.confirmPassword}
+                rightIcon={
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    className="focus:outline-none text-slate-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+                    id="register-toggle-confirm-password"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-4.5 h-4.5" />
+                    ) : (
+                      <Eye className="w-4.5 h-4.5" />
+                    )}
+                  </button>
+                }
+                error={touched.confirmPassword && fieldErrors.confirmPassword}
+                success={touched.confirmPassword && successFields.confirmPassword}
                 required
               />
 
               <Button
                 type="submit"
+                id="register-submit"
                 isLoading={loading}
                 className="w-full py-3 mt-2"
                 rightIcon={<ArrowRight className="w-4.5 h-4.5" />}
@@ -203,7 +384,11 @@ export default function RegisterPage() {
 
             <div className="text-center text-xs font-semibold text-slate-450 dark:text-zinc-500 pt-4 border-t border-slate-50 dark:border-zinc-850">
               Already have an account?{" "}
-              <Link href="/login" className="text-indigo-600 dark:text-indigo-400 hover:underline">
+              <Link
+                href="/login"
+                id="register-login-link"
+                className="text-indigo-600 dark:text-indigo-400 hover:underline"
+              >
                 Sign In
               </Link>
             </div>
