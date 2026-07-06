@@ -4,28 +4,38 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, ArrowRight, ShoppingBag, Eye, EyeOff, Check } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { useAuthStore } from "@/store/useAuthStore";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
 import Breadcrumb from "@/components/Breadcrumb";
+
+const loginSchema = z.object({
+  email: z.string()
+    .min(1, { message: "Email Address is required." })
+    .email({ message: "Please enter a valid email address." }),
+  password: z.string()
+    .min(1, { message: "Password is required." })
+    .min(6, { message: "Password must be at least 6 characters." })
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string()
+    .min(1, { message: "Email Address is required." })
+    .email({ message: "Please enter a valid email address." })
+});
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, forgotPassword, isAuthenticated } = useAuthStore();
 
   // Login form states
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // Real-time validation states
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [successFields, setSuccessFields] = useState({});
-  const [touched, setTouched] = useState({});
-
   // Forgot password states
-  const [forgotEmail, setForgotEmail] = useState("");
   const [forgotMode, setForgotMode] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotMessage, setForgotMessage] = useState(null);
@@ -45,70 +55,41 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, router]);
 
-  // Real-time validation logic
-  const validateField = (fieldName, value) => {
-    let errorMsg = null;
-    let isValid = false;
-
-    if (fieldName === "email") {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!value.trim()) {
-        errorMsg = "Email Address is required.";
-      } else if (!emailRegex.test(value.trim())) {
-        errorMsg = "Please enter a valid email address.";
-      } else {
-        isValid = true;
-      }
-    } else if (fieldName === "password") {
-      if (!value) {
-        errorMsg = "Password is required.";
-      } else if (value.length < 6) {
-        errorMsg = "Password must be at least 6 characters.";
-      } else {
-        isValid = true;
-      }
-    } else if (fieldName === "forgotEmail") {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!value.trim()) {
-        errorMsg = "Email Address is required.";
-      } else if (!emailRegex.test(value.trim())) {
-        errorMsg = "Please enter a valid email address.";
-      } else {
-        isValid = true;
-      }
+  // React Hook Form for login
+  const {
+    register: registerLogin,
+    handleSubmit: handleLoginSubmit,
+    formState: { errors: loginErrors, touchedFields: loginTouched },
+    reset: resetLoginForm,
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+    mode: "onTouched",
+    defaultValues: {
+      email: "",
+      password: "",
     }
+  });
 
-    setFieldErrors((prev) => ({ ...prev, [fieldName]: errorMsg }));
-    setSuccessFields((prev) => ({ ...prev, [fieldName]: isValid }));
-    return isValid;
-  };
+  // React Hook Form for forgot password
+  const {
+    register: registerForgot,
+    handleSubmit: handleForgotSubmit,
+    formState: { errors: forgotErrors, touchedFields: forgotTouched },
+    reset: resetForgotForm,
+  } = useForm({
+    resolver: zodResolver(forgotPasswordSchema),
+    mode: "onTouched",
+    defaultValues: {
+      email: "",
+    }
+  });
 
-  const handleBlur = (fieldName) => {
-    setTouched((prev) => ({ ...prev, [fieldName]: true }));
-    if (fieldName === "email") validateField("email", email);
-    if (fieldName === "password") validateField("password", password);
-    if (fieldName === "forgotEmail") validateField("forgotEmail", forgotEmail);
-  };
-
-  const handleLoginSubmit = async (e) => {
-    e.preventDefault();
+  const onLoginSubmit = async (data) => {
     setError(null);
-
-    // Mark fields as touched
-    const allTouched = { email: true, password: true };
-    setTouched(allTouched);
-
-    const isEmailValid = validateField("email", email);
-    const isPasswordValid = validateField("password", password);
-
-    if (!isEmailValid || !isPasswordValid) {
-      return;
-    }
-
     setLoading(true);
 
     try {
-      const result = await login(email.trim(), password);
+      const result = await login(data.email.trim(), data.password);
       if (result.success) {
         router.push("/profile");
       } else {
@@ -121,27 +102,15 @@ export default function LoginPage() {
     }
   };
 
-  const handleForgotSubmit = async (e) => {
-    e.preventDefault();
+  const onForgotSubmit = async (data) => {
     setForgotMessage(null);
-
-    // Mark forgot email as touched
-    setTouched((prev) => ({ ...prev, forgotEmail: true }));
-    const isForgotEmailValid = validateField("forgotEmail", forgotEmail);
-
-    if (!isForgotEmailValid) {
-      return;
-    }
-
     setForgotLoading(true);
 
     try {
-      const result = await forgotPassword(forgotEmail.trim());
+      const result = await forgotPassword(data.email.trim());
       setForgotMessage({ success: result.success, text: result.message });
       if (result.success) {
-        setForgotEmail("");
-        setTouched((prev) => ({ ...prev, forgotEmail: false }));
-        setSuccessFields((prev) => ({ ...prev, forgotEmail: false }));
+        resetForgotForm();
       }
     } catch (err) {
       setForgotMessage({
@@ -209,25 +178,17 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <form onSubmit={handleLoginSubmit} className="space-y-4" noValidate>
+              <form onSubmit={handleLoginSubmit(onLoginSubmit)} className="space-y-4" noValidate>
                 <Input
                   label="Email Address"
                   type="email"
                   id="login-email"
                   placeholder="e.g. jane@example.com"
-                  value={email}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setEmail(val);
-                    if (touched.email) {
-                      validateField("email", val);
-                    }
-                  }}
-                  onBlur={() => handleBlur("email")}
                   leftIcon={<Mail className="w-4.5 h-4.5" />}
-                  error={touched.email && fieldErrors.email}
-                  success={touched.email && successFields.email}
+                  error={loginErrors.email?.message}
+                  success={loginTouched.email && !loginErrors.email}
                   required
+                  {...registerLogin("email")}
                 />
 
                 <Input
@@ -235,15 +196,6 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   id="login-password"
                   placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setPassword(val);
-                    if (touched.password) {
-                      validateField("password", val);
-                    }
-                  }}
-                  onBlur={() => handleBlur("password")}
                   leftIcon={<Lock className="w-4.5 h-4.5" />}
                   rightIcon={
                     <button
@@ -259,9 +211,10 @@ export default function LoginPage() {
                       )}
                     </button>
                   }
-                  error={touched.password && fieldErrors.password}
-                  success={touched.password && successFields.password}
+                  error={loginErrors.password?.message}
+                  success={loginTouched.password && !loginErrors.password}
                   required
+                  {...registerLogin("password")}
                 />
 
                 <div className="flex justify-end pt-1">
@@ -271,9 +224,7 @@ export default function LoginPage() {
                     onClick={() => {
                       setForgotMode(true);
                       setError(null);
-                      setFieldErrors({});
-                      setSuccessFields({});
-                      setTouched({});
+                      resetLoginForm();
                     }}
                     className="text-xs font-bold text-indigo-650 dark:text-indigo-400 hover:underline cursor-pointer"
                   >
@@ -326,25 +277,17 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <form onSubmit={handleForgotSubmit} className="space-y-4" noValidate>
+              <form onSubmit={handleForgotSubmit(onForgotSubmit)} className="space-y-4" noValidate>
                 <Input
                   label="Email Address"
                   type="email"
                   id="forgot-email"
                   placeholder="e.g. jane@example.com"
-                  value={forgotEmail}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setForgotEmail(val);
-                    if (touched.forgotEmail) {
-                      validateField("forgotEmail", val);
-                    }
-                  }}
-                  onBlur={() => handleBlur("forgotEmail")}
                   leftIcon={<Mail className="w-4.5 h-4.5" />}
-                  error={touched.forgotEmail && fieldErrors.forgotEmail}
-                  success={touched.forgotEmail && successFields.forgotEmail}
+                  error={forgotErrors.email?.message}
+                  success={forgotTouched.email && !forgotErrors.email}
                   required
+                  {...registerForgot("email")}
                 />
 
                 <Button
@@ -364,9 +307,7 @@ export default function LoginPage() {
                   onClick={() => {
                     setForgotMode(false);
                     setForgotMessage(null);
-                    setFieldErrors({});
-                    setSuccessFields({});
-                    setTouched({});
+                    resetForgotForm();
                   }}
                   className="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                 >

@@ -11,10 +11,82 @@ import {
   ArrowLeft,
   Truck,
 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { useCartStore } from "@/store/useCartStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import Breadcrumb from "@/components/Breadcrumb";
 import Input from "@/components/Input";
+
+const checkoutSchema = z.object({
+  shippingAddress: z.object({
+    fullName: z.string().min(1, { message: "Full Name is required." }),
+    phone: z.string().min(1, { message: "Phone Number is required." }),
+    street: z.string().min(1, { message: "Street Address is required." }),
+    city: z.string().min(1, { message: "City is required." }),
+    state: z.string().min(1, { message: "State / Region is required." }),
+    zipCode: z.string().min(1, { message: "ZIP / Postal Code is required." }),
+    country: z.string().default("United States"),
+  }),
+  billingAddress: z.object({
+    fullName: z.string().optional(),
+    phone: z.string().optional(),
+    street: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    zipCode: z.string().optional(),
+    country: z.string().default("United States"),
+  }),
+  sameAsBilling: z.boolean().default(true),
+  paymentMethod: z.string().default("card"),
+}).superRefine((val, ctx) => {
+  if (!val.sameAsBilling) {
+    const billing = val.billingAddress;
+    if (!billing.fullName?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Full Name is required.",
+        path: ["billingAddress", "fullName"],
+      });
+    }
+    if (!billing.phone?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Phone Number is required.",
+        path: ["billingAddress", "phone"],
+      });
+    }
+    if (!billing.street?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Street Address is required.",
+        path: ["billingAddress", "street"],
+      });
+    }
+    if (!billing.city?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "City is required.",
+        path: ["billingAddress", "city"],
+      });
+    }
+    if (!billing.state?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "State / Region is required.",
+        path: ["billingAddress", "state"],
+      });
+    }
+    if (!billing.zipCode?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "ZIP / Postal Code is required.",
+        path: ["billingAddress", "zipCode"],
+      });
+    }
+  }
+});
 
 export default function CheckoutPage() {
   const { items, getTotals, clearCart } = useCartStore();
@@ -22,63 +94,83 @@ export default function CheckoutPage() {
 
   const totals = getTotals();
 
-  // Address States
-  const [shippingAddress, setShippingAddress] = useState({
-    fullName: "",
-    street: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    country: "United States",
-    phone: "",
-  });
-
-  const [billingAddress, setBillingAddress] = useState({
-    fullName: "",
-    street: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    country: "United States",
-    phone: "",
-  });
-
-  const [sameAsBilling, setSameAsBilling] = useState(true);
-  const [paymentMethod, setPaymentMethod] = useState("card");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [placedOrder, setPlacedOrder] = useState(null);
 
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    reset,
+    watch,
+    formState: { errors, touchedFields },
+  } = useForm({
+    resolver: zodResolver(checkoutSchema),
+    mode: "onTouched",
+    defaultValues: {
+      shippingAddress: {
+        fullName: "",
+        phone: "",
+        street: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        country: "United States",
+      },
+      billingAddress: {
+        fullName: "",
+        phone: "",
+        street: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        country: "United States",
+      },
+      sameAsBilling: true,
+      paymentMethod: "card",
+    }
+  });
+
+  const sameAsBilling = watch("sameAsBilling");
+  const paymentMethod = watch("paymentMethod");
+
   // Pre-fill address if authenticated
   useEffect(() => {
-    if (isAuthenticated && user?.shippingAddress) {
-      setShippingAddress(user.shippingAddress);
+    if (isAuthenticated && user) {
+      reset({
+        shippingAddress: {
+          fullName: user.shippingAddress?.fullName || "",
+          phone: user.shippingAddress?.phone || "",
+          street: user.shippingAddress?.street || "",
+          city: user.shippingAddress?.city || "",
+          state: user.shippingAddress?.state || "",
+          zipCode: user.shippingAddress?.zipCode || "",
+          country: user.shippingAddress?.country || "United States",
+        },
+        billingAddress: {
+          fullName: user.billingAddress?.fullName || "",
+          phone: user.billingAddress?.phone || "",
+          street: user.billingAddress?.street || "",
+          city: user.billingAddress?.city || "",
+          state: user.billingAddress?.state || "",
+          zipCode: user.billingAddress?.zipCode || "",
+          country: user.billingAddress?.country || "United States",
+        },
+        sameAsBilling: watch("sameAsBilling") ?? true,
+        paymentMethod: watch("paymentMethod") ?? "card",
+      });
     }
-    if (isAuthenticated && user?.billingAddress) {
-      setBillingAddress(user.billingAddress);
-    }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, reset]);
 
-  const handleShippingChange = (e) => {
-    const { name, value } = e.target;
-    setShippingAddress((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleBillingChange = (e) => {
-    const { name, value } = e.target;
-    setBillingAddress((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handlePlaceOrder = async (e) => {
-    e.preventDefault();
+  const onPlaceOrder = async (data) => {
     if (items.length === 0) return;
 
     setIsSubmitting(true);
     // Simulate payment processing
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    const activeBilling = sameAsBilling ? shippingAddress : billingAddress;
     // Add to auth store orders list
-    const orderResult = addOrder(items, totals, paymentMethod, shippingAddress);
+    const orderResult = addOrder(items, totals, data.paymentMethod, data.shippingAddress);
     setPlacedOrder(orderResult);
     setIsSubmitting(false);
     clearCart(); // Clear cart state
@@ -184,7 +276,7 @@ export default function CheckoutPage() {
       </h1>
 
       <form
-        onSubmit={handlePlaceOrder}
+        onSubmit={handleSubmit(onPlaceOrder)}
         className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-6"
       >
         {/* Left Side: Address Details & Payment Methods (7 columns) */}
@@ -198,67 +290,67 @@ export default function CheckoutPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 label="Full Name"
-                name="fullName"
-                value={shippingAddress.fullName}
-                onChange={handleShippingChange}
                 placeholder="e.g. Jane Doe"
+                error={errors.shippingAddress?.fullName?.message}
+                success={touchedFields.shippingAddress?.fullName && !errors.shippingAddress?.fullName}
                 required
+                {...register("shippingAddress.fullName")}
               />
 
               <Input
                 label="Phone Number"
-                name="phone"
-                value={shippingAddress.phone}
-                onChange={handleShippingChange}
                 placeholder="e.g. +1 (555) 019-2834"
+                error={errors.shippingAddress?.phone?.message}
+                success={touchedFields.shippingAddress?.phone && !errors.shippingAddress?.phone}
                 required
+                {...register("shippingAddress.phone")}
               />
             </div>
             <Input
               label="Street Address"
-              name="street"
-              value={shippingAddress.street}
-              onChange={handleShippingChange}
               placeholder="e.g. 123 Market Street, Apt 4B"
+              error={errors.shippingAddress?.street?.message}
+              success={touchedFields.shippingAddress?.street && !errors.shippingAddress?.street}
               required
+              {...register("shippingAddress.street")}
             />
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <Input
                 label="City"
-                name="city"
-                value={shippingAddress.city}
-                onChange={handleShippingChange}
                 placeholder="San Francisco"
+                error={errors.shippingAddress?.city?.message}
+                success={touchedFields.shippingAddress?.city && !errors.shippingAddress?.city}
                 required
+                {...register("shippingAddress.city")}
               />
 
               <Input
                 label="State / Region"
-                name="state"
-                value={shippingAddress.state}
-                onChange={handleShippingChange}
                 placeholder="CA"
+                error={errors.shippingAddress?.state?.message}
+                success={touchedFields.shippingAddress?.state && !errors.shippingAddress?.state}
                 required
+                {...register("shippingAddress.state")}
               />
 
               <Input
                 label="ZIP / Postal Code"
-                name="zipCode"
-                value={shippingAddress.zipCode}
-                onChange={handleShippingChange}
                 placeholder="94103"
+                error={errors.shippingAddress?.zipCode?.message}
+                success={touchedFields.shippingAddress?.zipCode && !errors.shippingAddress?.zipCode}
                 required
+                {...register("shippingAddress.zipCode")}
               />
             </div>
 
             <div className="pt-2">
-              <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-700 dark:text-zinc-350">
+              <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-700 dark:text-zinc-355">
                 <input
                   type="checkbox"
                   checked={sameAsBilling}
-                  onChange={(e) => setSameAsBilling(e.target.checked)}
-                  className="w-4.5 h-4.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  onChange={(e) => setValue("sameAsBilling", e.target.checked, { shouldValidate: true })}
+                  className="w-4.5 h-4.5 rounded border-slate-305 text-indigo-600 focus:ring-indigo-500"
                 />
                 Billing Address same as Shipping Address
               </label>
@@ -275,64 +367,64 @@ export default function CheckoutPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
                   label="Full Name"
-                  name="fullName"
-                  value={billingAddress.fullName}
-                  onChange={handleBillingChange}
                   placeholder="e.g. Jane Doe"
+                  error={errors.billingAddress?.fullName?.message}
+                  success={touchedFields.billingAddress?.fullName && !errors.billingAddress?.fullName}
                   required
+                  {...register("billingAddress.fullName")}
                 />
 
                 <Input
                   label="Phone Number"
-                  name="phone"
-                  value={billingAddress.phone}
-                  onChange={handleBillingChange}
                   placeholder="e.g. +1 (555) 019-2834"
+                  error={errors.billingAddress?.phone?.message}
+                  success={touchedFields.billingAddress?.phone && !errors.billingAddress?.phone}
                   required
+                  {...register("billingAddress.phone")}
                 />
               </div>
               <Input
                 label="Street Address"
-                name="street"
-                value={billingAddress.street}
-                onChange={handleBillingChange}
                 placeholder="e.g. 123 Market Street, Apt 4B"
+                error={errors.billingAddress?.street?.message}
+                success={touchedFields.billingAddress?.street && !errors.billingAddress?.street}
                 required
+                {...register("billingAddress.street")}
               />
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <Input
                   label="City"
-                  name="city"
-                  value={billingAddress.city}
-                  onChange={handleBillingChange}
                   placeholder="San Francisco"
+                  error={errors.billingAddress?.city?.message}
+                  success={touchedFields.billingAddress?.city && !errors.billingAddress?.city}
                   required
+                  {...register("billingAddress.city")}
                 />
 
                 <Input
                   label="State / Region"
-                  name="state"
-                  value={billingAddress.state}
-                  onChange={handleBillingChange}
                   placeholder="CA"
+                  error={errors.billingAddress?.state?.message}
+                  success={touchedFields.billingAddress?.state && !errors.billingAddress?.state}
                   required
+                  {...register("billingAddress.state")}
                 />
 
                 <Input
                   label="ZIP / Postal Code"
-                  name="zipCode"
-                  value={billingAddress.zipCode}
-                  onChange={handleBillingChange}
                   placeholder="94103"
+                  error={errors.billingAddress?.zipCode?.message}
+                  success={touchedFields.billingAddress?.zipCode && !errors.billingAddress?.zipCode}
                   required
+                  {...register("billingAddress.zipCode")}
                 />
               </div>
             </div>
           )}
 
           {/* Payment Method Container */}
-          <div className="border border-slate-100 dark:border-zinc-850 bg-white dark:bg-zinc-900 rounded-2xl p-5 sm:p-6 space-y-4">
+          <div className="border border-slate-100 dark:border-zinc-855 bg-white dark:bg-zinc-900 rounded-2xl p-5 sm:p-6 space-y-4">
             <h3 className="font-bold text-slate-900 dark:text-zinc-50 text-lg flex items-center gap-2">
               <CreditCard className="w-5 h-5 text-indigo-650" /> Payment Method
             </h3>
@@ -356,7 +448,7 @@ export default function CheckoutPage() {
                     name="paymentMethod"
                     value={method.id}
                     checked={paymentMethod === method.id}
-                    onChange={() => setPaymentMethod(method.id)}
+                    onChange={() => setValue("paymentMethod", method.id, { shouldValidate: true })}
                     className="sr-only"
                   />
 
