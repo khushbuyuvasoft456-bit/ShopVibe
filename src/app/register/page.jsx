@@ -4,26 +4,35 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { User, Mail, Lock, ArrowRight, Sparkles, Eye, EyeOff, Check } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { useAuthStore } from "@/store/useAuthStore";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
 import Breadcrumb from "@/components/Breadcrumb";
 
+const registerSchema = z.object({
+  name: z.string().min(1, { message: "Full Name is required." }),
+  email: z.string()
+    .min(1, { message: "Email Address is required." })
+    .email({ message: "Please enter a valid email address." }),
+  password: z.string()
+    .min(1, { message: "Password is required." })
+    .min(6, { message: "Password must be at least 6 characters." }),
+  confirmPassword: z.string()
+    .min(1, { message: "Please confirm your password." })
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match.",
+  path: ["confirmPassword"],
+});
+
 export default function RegisterPage() {
   const router = useRouter();
-  const { register, isAuthenticated } = useAuthStore();
+  const { register: authRegister, isAuthenticated } = useAuthStore();
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
-  // Real-time validation states
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [successFields, setSuccessFields] = useState({});
-  const [touched, setTouched] = useState({});
   
   // Password visibility states
   const [showPassword, setShowPassword] = useState(false);
@@ -41,81 +50,30 @@ export default function RegisterPage() {
     }
   }, [isAuthenticated, router]);
 
-  // Real-time validation logic
-  const validateField = (fieldName, value, currentPasswordState = password) => {
-    let errorMsg = null;
-    let isValid = false;
-
-    if (fieldName === "name") {
-      if (!value.trim()) {
-        errorMsg = "Full Name is required.";
-      } else {
-        isValid = true;
-      }
-    } else if (fieldName === "email") {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!value.trim()) {
-        errorMsg = "Email Address is required.";
-      } else if (!emailRegex.test(value.trim())) {
-        errorMsg = "Please enter a valid email address.";
-      } else {
-        isValid = true;
-      }
-    } else if (fieldName === "password") {
-      if (!value) {
-        errorMsg = "Password is required.";
-      } else if (value.length < 6) {
-        errorMsg = "Password must be at least 6 characters.";
-      } else {
-        isValid = true;
-      }
-    } else if (fieldName === "confirmPassword") {
-      if (!value) {
-        errorMsg = "Please confirm your password.";
-      } else if (value !== currentPasswordState) {
-        errorMsg = "Passwords do not match.";
-      } else {
-        isValid = true;
-      }
+  // React Hook Form for register
+  const {
+    register: registerField,
+    handleSubmit: handleRegisterSubmit,
+    watch,
+    trigger,
+    formState: { errors: registerErrors, touchedFields: registerTouched },
+  } = useForm({
+    resolver: zodResolver(registerSchema),
+    mode: "onTouched",
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
     }
+  });
 
-    setFieldErrors((prev) => ({ ...prev, [fieldName]: errorMsg }));
-    setSuccessFields((prev) => ({ ...prev, [fieldName]: isValid }));
-    return isValid;
-  };
-
-  const handleBlur = (fieldName) => {
-    setTouched((prev) => ({ ...prev, [fieldName]: true }));
-    if (fieldName === "name") validateField("name", name);
-    if (fieldName === "email") validateField("email", email);
-    if (fieldName === "password") {
-      validateField("password", password);
-      if (confirmPassword) validateField("confirmPassword", confirmPassword, password);
-    }
-    if (fieldName === "confirmPassword") validateField("confirmPassword", confirmPassword, password);
-  };
-
-  const handleRegisterSubmit = async (e) => {
-    e.preventDefault();
+  const onRegisterSubmit = async (data) => {
     setError(null);
-
-    // Mark all fields as touched to trigger full validation
-    const allTouched = { name: true, email: true, password: true, confirmPassword: true };
-    setTouched(allTouched);
-
-    const isNameValid = validateField("name", name);
-    const isEmailValid = validateField("email", email);
-    const isPasswordValid = validateField("password", password);
-    const isConfirmPasswordValid = validateField("confirmPassword", confirmPassword, password);
-
-    if (!isNameValid || !isEmailValid || !isPasswordValid || !isConfirmPasswordValid) {
-      return;
-    }
-
     setLoading(true);
 
     try {
-      const result = await register(name.trim(), email.trim(), password);
+      const result = await authRegister(data.name.trim(), data.email.trim(), data.password);
       if (result.success) {
         router.push("/profile");
       } else {
@@ -131,9 +89,10 @@ export default function RegisterPage() {
   };
 
   // Password checklist helpers
-  const hasMinLength = password.length >= 6;
-  const hasNumber = /\d/.test(password);
-  const hasUppercase = /[A-Z]/.test(password);
+  const passwordValue = watch("password") || "";
+  const hasMinLength = passwordValue.length >= 6;
+  const hasNumber = /\d/.test(passwordValue);
+  const hasUppercase = /[A-Z]/.test(passwordValue);
 
   return (
     <div className="pb-20 max-w-4xl mx-auto">
@@ -190,25 +149,17 @@ export default function RegisterPage() {
               </div>
             )}
 
-            <form onSubmit={handleRegisterSubmit} className="space-y-4" noValidate>
+            <form onSubmit={handleRegisterSubmit(onRegisterSubmit)} className="space-y-4" noValidate>
               <Input
                 label="Full Name"
                 type="text"
                 id="register-name"
                 placeholder="e.g. Jane Doe"
-                value={name}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setName(val);
-                  if (touched.name) {
-                    validateField("name", val);
-                  }
-                }}
-                onBlur={() => handleBlur("name")}
                 leftIcon={<User className="w-4.5 h-4.5" />}
-                error={touched.name && fieldErrors.name}
-                success={touched.name && successFields.name}
+                error={registerErrors.name?.message}
+                success={registerTouched.name && !registerErrors.name}
                 required
+                {...registerField("name")}
               />
 
               <Input
@@ -216,19 +167,11 @@ export default function RegisterPage() {
                 type="email"
                 id="register-email"
                 placeholder="e.g. jane@example.com"
-                value={email}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setEmail(val);
-                  if (touched.email) {
-                    validateField("email", val);
-                  }
-                }}
-                onBlur={() => handleBlur("email")}
                 leftIcon={<Mail className="w-4.5 h-4.5" />}
-                error={touched.email && fieldErrors.email}
-                success={touched.email && successFields.email}
+                error={registerErrors.email?.message}
+                success={registerTouched.email && !registerErrors.email}
                 required
+                {...registerField("email")}
               />
 
               <Input
@@ -236,18 +179,6 @@ export default function RegisterPage() {
                 type={showPassword ? "text" : "password"}
                 id="register-password"
                 placeholder="Min. 6 characters"
-                value={password}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setPassword(val);
-                  if (touched.password) {
-                    validateField("password", val, val);
-                  }
-                  if (touched.confirmPassword) {
-                    validateField("confirmPassword", confirmPassword, val);
-                  }
-                }}
-                onBlur={() => handleBlur("password")}
                 leftIcon={<Lock className="w-4.5 h-4.5" />}
                 rightIcon={
                   <button
@@ -263,13 +194,20 @@ export default function RegisterPage() {
                     )}
                   </button>
                 }
-                error={touched.password && fieldErrors.password}
-                success={touched.password && successFields.password}
+                error={registerErrors.password?.message}
+                success={registerTouched.password && !registerErrors.password}
                 required
+                {...registerField("password", {
+                  onChange: () => {
+                    if (registerTouched.confirmPassword) {
+                      trigger("confirmPassword");
+                    }
+                  }
+                })}
               />
 
               {/* Password Strength Checklist */}
-              {password.length > 0 && (
+              {passwordValue.length > 0 && (
                 <div className="p-3 bg-slate-50 dark:bg-zinc-850/50 rounded-xl border border-slate-100 dark:border-zinc-800 space-y-1.5 text-xs animate-scale-in">
                   <p className="font-semibold text-slate-500 dark:text-zinc-400 mb-1">
                     Password Strength Checklist:
@@ -342,15 +280,6 @@ export default function RegisterPage() {
                 type={showConfirmPassword ? "text" : "password"}
                 id="register-confirm-password"
                 placeholder="Re-enter password"
-                value={confirmPassword}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setConfirmPassword(val);
-                  if (touched.confirmPassword) {
-                    validateField("confirmPassword", val, password);
-                  }
-                }}
-                onBlur={() => handleBlur("confirmPassword")}
                 leftIcon={<Lock className="w-4.5 h-4.5" />}
                 rightIcon={
                   <button
@@ -366,9 +295,10 @@ export default function RegisterPage() {
                     )}
                   </button>
                 }
-                error={touched.confirmPassword && fieldErrors.confirmPassword}
-                success={touched.confirmPassword && successFields.confirmPassword}
+                error={registerErrors.confirmPassword?.message}
+                success={registerTouched.confirmPassword && !registerErrors.confirmPassword}
                 required
+                {...registerField("confirmPassword")}
               />
 
               <Button
