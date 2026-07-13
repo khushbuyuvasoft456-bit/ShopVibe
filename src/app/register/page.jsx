@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { User, Mail, Lock, ArrowRight, Sparkles, Eye, EyeOff, Check } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,8 +27,9 @@ const registerSchema = z.object({
   path: ["confirmPassword"],
 });
 
-export default function RegisterPage() {
+function RegisterContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { register: authRegister, isAuthenticated } = useAuthStore();
 
   const [loading, setLoading] = useState(false);
@@ -46,9 +47,10 @@ export default function RegisterPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      router.push("/profile");
+      const redirectPath = searchParams.get("redirect") || "/profile";
+      router.push(redirectPath);
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, searchParams]);
 
   // React Hook Form for register
   const {
@@ -75,7 +77,8 @@ export default function RegisterPage() {
     try {
       const result = await authRegister(data.name.trim(), data.email.trim(), data.password);
       if (result.success) {
-        router.push("/profile");
+        const redirectPath = searchParams.get("redirect") || "/profile";
+        router.push(redirectPath);
       } else {
         setError(result.message);
       }
@@ -312,10 +315,10 @@ export default function RegisterPage() {
               </Button>
             </form>
 
-            <div className="text-center text-xs font-semibold text-slate-450 dark:text-zinc-500 pt-4 border-t border-slate-50 dark:border-zinc-850">
+             <div className="text-center text-xs font-semibold text-slate-450 dark:text-zinc-500 pt-4 border-t border-slate-50 dark:border-zinc-850">
               Already have an account?{" "}
               <Link
-                href="/login"
+                href={searchParams.get("redirect") ? `/login?redirect=${encodeURIComponent(searchParams.get("redirect"))}` : "/login"}
                 id="register-login-link"
                 className="text-indigo-600 dark:text-indigo-400 hover:underline"
               >
@@ -326,5 +329,13 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[50vh] flex items-center justify-center"><div className="w-10 h-10 border-4 border-indigo-650 border-t-transparent rounded-full animate-spin" /></div>}>
+      <RegisterContent />
+    </Suspense>
   );
 }

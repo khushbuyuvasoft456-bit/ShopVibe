@@ -8,6 +8,7 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [orders, setOrders] = useState([]);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -24,11 +25,14 @@ export function AuthProvider({ children }) {
       }
     } catch (e) {
       console.error("Failed to load auth state from localStorage", e);
+    } finally {
+      setIsInitialized(true);
     }
   }, []);
 
   // Save to localStorage when state changes
   useEffect(() => {
+    if (!isInitialized) return;
     try {
       const data = {
         state: { user, token, isAuthenticated, orders },
@@ -38,7 +42,7 @@ export function AuthProvider({ children }) {
     } catch (e) {
       console.error("Failed to save auth state to localStorage", e);
     }
-  }, [user, token, isAuthenticated, orders]);
+  }, [user, token, isAuthenticated, orders, isInitialized]);
 
   const login = async (email, password) => {
     await new Promise((resolve) => setTimeout(resolve, 800));
@@ -153,6 +157,7 @@ export function AuthProvider({ children }) {
     user,
     token,
     isAuthenticated,
+    isInitialized,
     orders,
     login,
     register,
