@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, ArrowRight, ShoppingBag, Eye, EyeOff, Check } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,8 +27,9 @@ const forgotPasswordSchema = z.object({
     .email({ message: "Please enter a valid email address." })
 });
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login, forgotPassword, isAuthenticated } = useAuthStore();
 
   // Login form states
@@ -51,9 +52,10 @@ export default function LoginPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      router.push("/profile");
+      const redirectPath = searchParams.get("redirect") || "/profile";
+      router.push(redirectPath);
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, searchParams]);
 
   // React Hook Form for login
   const {
@@ -91,7 +93,8 @@ export default function LoginPage() {
     try {
       const result = await login(data.email.trim(), data.password);
       if (result.success) {
-        router.push("/profile");
+        const redirectPath = searchParams.get("redirect") || "/profile";
+        router.push(redirectPath);
       } else {
         setError(result.message);
       }
@@ -246,7 +249,7 @@ export default function LoginPage() {
               <div className="text-center text-xs font-semibold text-slate-450 dark:text-zinc-500 pt-4 border-t border-slate-50 dark:border-zinc-850">
                 Don't have an account?{" "}
                 <Link
-                  href="/register"
+                  href={searchParams.get("redirect") ? `/register?redirect=${encodeURIComponent(searchParams.get("redirect"))}` : "/register"}
                   id="login-register-link"
                   className="text-indigo-600 dark:text-indigo-400 hover:underline"
                 >
@@ -319,5 +322,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[50vh] flex items-center justify-center"><div className="w-10 h-10 border-4 border-indigo-650 border-t-transparent rounded-full animate-spin" /></div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

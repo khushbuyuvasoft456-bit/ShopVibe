@@ -11,6 +11,8 @@ import Input from "@/components/Input";
 import Button from "@/components/Button";
 import Breadcrumb from "@/components/Breadcrumb";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
+
 const profileSchema = z.object({
   name: z.string().min(1, { message: "Full Name is required." }),
   phone: z.string().optional(),
@@ -30,13 +32,6 @@ export default function ProfilePage() {
   const router = useRouter();
   const { user, isAuthenticated, updateProfile, updateAddress } =
     useAuthStore();
-
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/login");
-    }
-  }, [isAuthenticated, router]);
 
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
@@ -98,27 +93,6 @@ export default function ProfilePage() {
     }
   }, [user, resetProfile, resetAddress]);
 
-  if (!user || !isAuthenticated) {
-    return (
-      <div className="py-20 max-w-md mx-auto text-center space-y-6">
-        <div className="w-16 h-16 rounded-full bg-rose-50 dark:bg-rose-955/20 text-rose-500 flex items-center justify-center mx-auto">
-          <ShieldAlert className="w-10 h-10 animate-bounce" />
-        </div>
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-zinc-200">
-          Access Denied
-        </h2>
-        <p className="text-slate-500">
-          Please sign in to view your profile panel dashboard.
-        </p>
-        <button
-          onClick={() => router.push("/login")}
-          className="mt-6 px-5 py-2.5 bg-indigo-650 text-white font-bold rounded-xl"
-        >
-          Sign In
-        </button>
-      </div>
-    );
-  }
 
   const onProfileUpdate = async (data) => {
     setIsUpdatingProfile(true);
@@ -146,152 +120,154 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="pb-20">
-      <Breadcrumb items={[{ label: "User Profile" }]} />
+    <ProtectedRoute>
+      <div className="pb-20">
+        <Breadcrumb items={[{ label: "User Profile" }]} />
 
-      <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-zinc-50 tracking-tight mt-2">
-        My Account
-      </h1>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-zinc-50 tracking-tight mt-2">
+          My Account
+        </h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-6">
-        {/* Left column: Profile details edit (5 cols) */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
-          <div className="border border-slate-105 dark:border-zinc-850 bg-white dark:bg-zinc-900 rounded-2xl p-5 sm:p-6 space-y-4">
-            <h3 className="font-bold text-slate-900 dark:text-zinc-50 text-lg flex items-center gap-2">
-              <User className="w-5 h-5 text-indigo-650" /> Personal Details
-            </h3>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-6">
+          {/* Left column: Profile details edit (5 cols) */}
+          <div className="lg:col-span-5 flex flex-col gap-6">
+            <div className="border border-slate-105 dark:border-zinc-850 bg-white dark:bg-zinc-900 rounded-2xl p-5 sm:p-6 space-y-4">
+              <h3 className="font-bold text-slate-900 dark:text-zinc-50 text-lg flex items-center gap-2">
+                <User className="w-5 h-5 text-indigo-650" /> Personal Details
+              </h3>
 
-            {profileSuccess && (
-              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-450 border border-emerald-100 dark:border-emerald-900 text-xs font-bold rounded-xl flex items-center gap-1.5 animate-scale-in">
-                <CheckCircle className="w-4 h-4" /> Personal info updated!
-              </div>
-            )}
+              {profileSuccess && (
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-450 border border-emerald-100 dark:border-emerald-900 text-xs font-bold rounded-xl flex items-center gap-1.5 animate-scale-in">
+                  <CheckCircle className="w-4 h-4" /> Personal info updated!
+                </div>
+              )}
 
-            <form onSubmit={handleProfileSubmit(onProfileUpdate)} className="space-y-4">
-              <Input
-                label="Full Name"
-                type="text"
-                placeholder="Name"
-                error={profileErrors.name?.message}
-                success={profileTouched.name && !profileErrors.name}
-                required
-                {...registerProfile("name")}
-              />
+              <form onSubmit={handleProfileSubmit(onProfileUpdate)} className="space-y-4">
+                <Input
+                  label="Full Name"
+                  type="text"
+                  placeholder="Name"
+                  error={profileErrors.name?.message}
+                  success={profileTouched.name && !profileErrors.name}
+                  required
+                  {...registerProfile("name")}
+                />
 
-              <Input
-                label="Email Address"
-                type="email"
-                placeholder="Email"
-                value={user.email}
-                disabled
-                className="bg-slate-50 dark:bg-zinc-855 text-slate-400 cursor-not-allowed border-dashed"
-              />
+                <Input
+                  label="Email Address"
+                  type="email"
+                  placeholder="Email"
+                  value={user?.email || ""}
+                  disabled
+                  className="bg-slate-50 dark:bg-zinc-855 text-slate-400 cursor-not-allowed border-dashed"
+                />
 
-              <Input
-                label="Phone Number"
-                type="text"
-                placeholder="Phone number"
-                error={profileErrors.phone?.message}
-                success={profileTouched.phone && !profileErrors.phone}
-                leftIcon={<Phone className="w-4 h-4 text-slate-400" />}
-                {...registerProfile("phone")}
-              />
+                <Input
+                  label="Phone Number"
+                  type="text"
+                  placeholder="Phone number"
+                  error={profileErrors.phone?.message}
+                  success={profileTouched.phone && !profileErrors.phone}
+                  leftIcon={<Phone className="w-4 h-4 text-slate-400" />}
+                  {...registerProfile("phone")}
+                />
 
-              <Button
-                type="submit"
-                isLoading={isUpdatingProfile}
-                className="w-full py-2.5 text-sm"
-              >
-                Save Account Changes
-              </Button>
-            </form>
+                <Button
+                  type="submit"
+                  isLoading={isUpdatingProfile}
+                  className="w-full py-2.5 text-sm"
+                >
+                  Save Account Changes
+                </Button>
+              </form>
+            </div>
           </div>
-        </div>
 
-        {/* Right column: Default address settings (7 cols) */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
-          <div className="border border-slate-105 dark:border-zinc-850 bg-white dark:bg-zinc-900 rounded-2xl p-5 sm:p-6 space-y-4">
-            <h3 className="font-bold text-slate-900 dark:text-zinc-50 text-lg flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-indigo-650" /> Default Address
-            </h3>
+          {/* Right column: Default address settings (7 cols) */}
+          <div className="lg:col-span-7 flex flex-col gap-6">
+            <div className="border border-slate-105 dark:border-zinc-850 bg-white dark:bg-zinc-900 rounded-2xl p-5 sm:p-6 space-y-4">
+              <h3 className="font-bold text-slate-900 dark:text-zinc-50 text-lg flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-indigo-650" /> Default Address
+              </h3>
 
-            {shippingSuccess && (
-              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-455 border border-emerald-105 dark:border-emerald-900 text-xs font-bold rounded-xl flex items-center gap-1.5 animate-scale-in">
-                <CheckCircle className="w-4 h-4" /> Address updated
-                successfully!
-              </div>
-            )}
+              {shippingSuccess && (
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-455 border border-emerald-105 dark:border-emerald-900 text-xs font-bold rounded-xl flex items-center gap-1.5 animate-scale-in">
+                  <CheckCircle className="w-4 h-4" /> Address updated
+                  successfully!
+                </div>
+              )}
 
-            <form onSubmit={handleAddressSubmit(onAddressUpdate)} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input
-                  label="Contact Name"
-                  placeholder="e.g. Jane Doe"
-                  error={addressErrors.fullName?.message}
-                  success={addressTouched.fullName && !addressErrors.fullName}
-                  required
-                  {...registerAddress("fullName")}
-                />
+              <form onSubmit={handleAddressSubmit(onAddressUpdate)} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Input
+                    label="Contact Name"
+                    placeholder="e.g. Jane Doe"
+                    error={addressErrors.fullName?.message}
+                    success={addressTouched.fullName && !addressErrors.fullName}
+                    required
+                    {...registerAddress("fullName")}
+                  />
 
-                <Input
-                  label="Contact Phone"
-                  placeholder="e.g. +1 (555) 019-2834"
-                  error={addressErrors.phone?.message}
-                  success={addressTouched.phone && !addressErrors.phone}
-                  required
-                  {...registerAddress("phone")}
-                />
-              </div>
-
-              <Input
-                label="Street Address"
-                placeholder="e.g. 123 Market Street, Apt 4B"
-                error={addressErrors.street?.message}
-                success={addressTouched.street && !addressErrors.street}
-                required
-                {...registerAddress("street")}
-              />
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <Input
-                  label="City"
-                  placeholder="San Francisco"
-                  error={addressErrors.city?.message}
-                  success={addressTouched.city && !addressErrors.city}
-                  required
-                  {...registerAddress("city")}
-                />
+                  <Input
+                    label="Contact Phone"
+                    placeholder="e.g. +1 (555) 019-2834"
+                    error={addressErrors.phone?.message}
+                    success={addressTouched.phone && !addressErrors.phone}
+                    required
+                    {...registerAddress("phone")}
+                  />
+                </div>
 
                 <Input
-                  label="State"
-                  placeholder="CA"
-                  error={addressErrors.state?.message}
-                  success={addressTouched.state && !addressErrors.state}
+                  label="Street Address"
+                  placeholder="e.g. 123 Market Street, Apt 4B"
+                  error={addressErrors.street?.message}
+                  success={addressTouched.street && !addressErrors.street}
                   required
-                  {...registerAddress("state")}
+                  {...registerAddress("street")}
                 />
 
-                <Input
-                  label="ZIP Code"
-                  placeholder="94103"
-                  error={addressErrors.zipCode?.message}
-                  success={addressTouched.zipCode && !addressErrors.zipCode}
-                  required
-                  {...registerAddress("zipCode")}
-                />
-              </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <Input
+                    label="City"
+                    placeholder="San Francisco"
+                    error={addressErrors.city?.message}
+                    success={addressTouched.city && !addressErrors.city}
+                    required
+                    {...registerAddress("city")}
+                  />
 
-              <Button
-                type="submit"
-                isLoading={isUpdatingShipping}
-                className="w-full py-2.5 text-sm"
-              >
-                Save Address Info
-              </Button>
-            </form>
+                  <Input
+                    label="State"
+                    placeholder="CA"
+                    error={addressErrors.state?.message}
+                    success={addressTouched.state && !addressErrors.state}
+                    required
+                    {...registerAddress("state")}
+                  />
+
+                  <Input
+                    label="ZIP Code"
+                    placeholder="94103"
+                    error={addressErrors.zipCode?.message}
+                    success={addressTouched.zipCode && !addressErrors.zipCode}
+                    required
+                    {...registerAddress("zipCode")}
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  isLoading={isUpdatingShipping}
+                  className="w-full py-2.5 text-sm"
+                >
+                  Save Address Info
+                </Button>
+              </form>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }
