@@ -68,23 +68,21 @@ export const Footer = () => {
                 value={email}
                 onChange={handleEmailChange}
                 disabled={subscribed}
-                className={`w-full px-4 py-3 bg-slate-900 border rounded-xl outline-none focus:ring-1 text-white placeholder-slate-500 text-sm transition-all ${
-                  error
+                className={`w-full px-4 py-3 bg-slate-900 border rounded-xl outline-none focus:ring-1 text-white placeholder-slate-500 text-sm transition-all ${error
                     ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500"
                     : success
-                    ? "border-emerald-500 focus:border-emerald-500 focus:ring-emerald-500"
-                    : "border-slate-800 focus:border-indigo-500 focus:ring-indigo-500"
-                }`}
+                      ? "border-emerald-500 focus:border-emerald-500 focus:ring-emerald-500"
+                      : "border-slate-800 focus:border-indigo-500 focus:ring-indigo-500"
+                  }`}
               />
 
               <button
                 type="submit"
                 disabled={subscribed}
-                className={`absolute right-1.5 p-2 rounded-lg transition-all ${
-                  subscribed
+                className={`absolute right-1.5 p-2 rounded-lg transition-all ${subscribed
                     ? "bg-emerald-500 text-white"
                     : "bg-indigo-600 hover:bg-indigo-700 text-white"
-                }`}
+                  }`}
                 aria-label="Subscribe"
               >
                 {subscribed ? "Subbed!" : <Send className="w-4 h-4" />}
@@ -193,9 +191,9 @@ export const Footer = () => {
               <a href="#" className="text-slate-400 hover:text-white transition-colors">
                 Help Center
               </a>
-              <a href="#" className="text-slate-400 hover:text-white transition-colors">
+              <Link href="/orders" className="text-slate-400 hover:text-white transition-colors">
                 Track Your Order
-              </a>
+              </Link>
               <a href="#" className="text-slate-400 hover:text-white transition-colors">
                 Returns & Exchanges
               </a>
