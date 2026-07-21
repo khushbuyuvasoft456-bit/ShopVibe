@@ -3,7 +3,7 @@ import { DUMMY_PRODUCTS } from "@/constants/dummyData";
 
 // Create a real Axios instance that can be easily pointed to a production server
 export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "https://api.example.com",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "/api",
   headers: {
     "Content-Type": "application/json",
   },
@@ -106,5 +106,32 @@ export const ProductService = {
     return DUMMY_PRODUCTS.filter(
       (p) => p.category === category && p.id !== currentProductId,
     ).slice(0, 4);
+  },
+};
+
+export const AuthService = {
+  login: async (email, password) => {
+    const response = await apiClient.post("/auth/login", { email, password });
+    return response.data;
+  },
+  register: async (name, email, password) => {
+    const response = await apiClient.post("/auth/register", { name, email, password });
+    return response.data;
+  },
+  forgotPassword: async (email) => {
+    const response = await apiClient.post("/auth/forgot-password", { email });
+    return response.data;
+  },
+  getProfile: async () => {
+    const response = await apiClient.get("/auth/me");
+    return response.data;
+  },
+  updateProfile: async (profileData) => {
+    const response = await apiClient.put("/auth/profile", profileData);
+    return response.data;
+  },
+  updateAddress: async (type, addressData) => {
+    const response = await apiClient.put("/auth/address", { type, address: addressData });
+    return response.data;
   },
 };
