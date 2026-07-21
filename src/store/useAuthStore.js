@@ -1,5 +1,6 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { AuthService } from "@/services/api";
 
 const AuthContext = createContext(null);
 
@@ -10,24 +11,68 @@ export function AuthProvider({ children }) {
   const [orders, setOrders] = useState([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load from localStorage on mount
+  // Load from localStorage and verify session token on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("auth-storage");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed && parsed.state) {
-          if (parsed.state.user !== undefined) setUser(parsed.state.user);
-          if (parsed.state.token !== undefined) setToken(parsed.state.token);
-          if (parsed.state.isAuthenticated !== undefined) setIsAuthenticated(parsed.state.isAuthenticated);
-          if (parsed.state.orders !== undefined) setOrders(parsed.state.orders || []);
+    const initAuth = async () => {
+      let savedUser = null;
+      let savedToken = null;
+      let savedIsAuthenticated = false;
+      let savedOrders = [];
+
+      try {
+        const stored = localStorage.getItem("auth-storage");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && parsed.state) {
+            savedUser = parsed.state.user || null;
+            savedToken = parsed.state.token || null;
+            savedIsAuthenticated = parsed.state.isAuthenticated || false;
+            savedOrders = parsed.state.orders || [];
+          }
         }
+
+        if (savedToken) {
+          try {
+            const data = await AuthService.getProfile();
+            if (data.success && data.user) {
+              setUser(data.user);
+              setToken(savedToken);
+              setIsAuthenticated(true);
+              setOrders(savedOrders);
+            } else {
+              setUser(null);
+              setToken(null);
+              setIsAuthenticated(false);
+              setOrders([]);
+            }
+          } catch (err) {
+            console.error("Token verification failed:", err);
+            if (err.message.includes("401") || err.message.toLowerCase().includes("unauthorized") || err.message.toLowerCase().includes("token")) {
+              setUser(null);
+              setToken(null);
+              setIsAuthenticated(false);
+              setOrders([]);
+            } else {
+              setUser(savedUser);
+              setToken(savedToken);
+              setIsAuthenticated(savedIsAuthenticated);
+              setOrders(savedOrders);
+            }
+          }
+        } else {
+          setUser(null);
+          setToken(null);
+          setIsAuthenticated(false);
+          setOrders(savedOrders);
+        }
+      } catch (e) {
+        console.error("Failed to load auth state from localStorage", e);
+      } finally {
+        setIsInitialized(true);
       }
-    } catch (e) {
-      console.error("Failed to load auth state from localStorage", e);
-    } finally {
-      setIsInitialized(true);
-    }
+    };
+
+    initAuth();
   }, []);
 
   // Save to localStorage when state changes
@@ -45,69 +90,45 @@ export function AuthProvider({ children }) {
   }, [user, token, isAuthenticated, orders, isInitialized]);
 
   const login = async (email, password) => {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    if (email && password.length >= 6) {
-      const mockUser = {
-        name: email.split("@")[0].charAt(0).toUpperCase() + email.split("@")[0].slice(1),
-        email,
-        phone: "+1 (555) 019-2834",
-        shippingAddress: {
-          fullName: "Jane Doe",
-          street: "123 Market Street, Apt 4B",
-          city: "San Francisco",
-          state: "CA",
-          zipCode: "94103",
-          country: "United States",
-          phone: "+1 (555) 019-2834",
-        },
-        billingAddress: {
-          fullName: "Jane Doe",
-          street: "123 Market Street, Apt 4B",
-          city: "San Francisco",
-          state: "CA",
-          zipCode: "94103",
-          country: "United States",
-          phone: "+1 (555) 019-2834",
-        },
-      };
-
-      setUser(mockUser);
-      setToken("mock-jwt-token-xyz-12345");
-      setIsAuthenticated(true);
-
-      return { success: true, message: "Logged in successfully!" };
+    try {
+      const data = await AuthService.login(email, password);
+      if (data.success) {
+        setUser(data.user);
+        setToken(data.token);
+        setIsAuthenticated(true);
+        return { success: true, message: data.message || "Logged in successfully!" };
+      }
+      return { success: false, message: data.message || "Invalid credentials." };
+    } catch (e) {
+      return { success: false, message: e.message || "Invalid credentials." };
     }
-
-    return { success: false, message: "Invalid email or password (min 6 characters)." };
   };
 
   const register = async (name, email, password) => {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    if (name && email && password.length >= 6) {
-      const mockUser = {
-        name,
-        email,
-        phone: "",
-      };
-
-      setUser(mockUser);
-      setToken("mock-jwt-token-xyz-12345");
-      setIsAuthenticated(true);
-
-      return { success: true, message: "Registration successful!" };
+    try {
+      const data = await AuthService.register(name, email, password);
+      if (data.success) {
+        setUser(data.user);
+        setToken(data.token);
+        setIsAuthenticated(true);
+        return { success: true, message: data.message || "Registration successful!" };
+      }
+      return { success: false, message: data.message || "Registration failed." };
+    } catch (e) {
+      return { success: false, message: e.message || "Registration failed." };
     }
-
-    return { success: false, message: "Invalid inputs. Password must be at least 6 characters." };
   };
 
   const forgotPassword = async (email) => {
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    if (email.includes("@")) {
-      return { success: true, message: "Password reset link sent to your email!" };
+    try {
+      const data = await AuthService.forgotPassword(email);
+      if (data.success) {
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data.message || "Password reset failed." };
+    } catch (e) {
+      return { success: false, message: e.message || "Password reset failed." };
     }
-    return { success: false, message: "Invalid email address." };
   };
 
   const logout = () => {
@@ -116,22 +137,30 @@ export function AuthProvider({ children }) {
     setIsAuthenticated(false);
   };
 
-  const updateProfile = (profile) => {
-    setUser((prev) => {
-      if (!prev) return prev;
-      return { ...prev, ...profile };
-    });
+  const updateProfile = async (profile) => {
+    try {
+      const data = await AuthService.updateProfile(profile);
+      if (data.success) {
+        setUser(data.user);
+        return { success: true };
+      }
+      return { success: false, message: data.message };
+    } catch (e) {
+      return { success: false, message: e.message };
+    }
   };
 
-  const updateAddress = (type, address) => {
-    setUser((prev) => {
-      if (!prev) return prev;
-      const addressKey = type === "shipping" ? "shippingAddress" : "billingAddress";
-      return {
-        ...prev,
-        [addressKey]: address,
-      };
-    });
+  const updateAddress = async (type, address) => {
+    try {
+      const data = await AuthService.updateAddress(type, address);
+      if (data.success) {
+        setUser(data.user);
+        return { success: true };
+      }
+      return { success: false, message: data.message };
+    } catch (e) {
+      return { success: false, message: e.message };
+    }
   };
 
   const addOrder = (orderItems, totals, paymentMethod, address) => {
