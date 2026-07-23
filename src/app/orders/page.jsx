@@ -139,15 +139,26 @@ export default function OrderHistoryPage() {
 
                   {/* Bottom bar showing Address Info */}
                   <div className="bg-slate-50/20 dark:bg-zinc-900/10 px-4 sm:px-6 py-3 border-t border-slate-50 dark:border-zinc-850 text-xs font-medium text-slate-500 dark:text-zinc-450 flex flex-wrap justify-between items-center gap-2">
-                    <span className="truncate">
-                      Shipped to:{" "}
-                      <strong className="text-slate-700 dark:text-zinc-300">
-                        {order.shippingAddress.fullName}
-                      </strong>{" "}
-                      - {order.shippingAddress.street}, {order.shippingAddress.city}
-                    </span>
-                    <span className="flex items-center gap-1 text-indigo-650 hover:underline cursor-pointer">
-                      Pay via {order.paymentMethod.toUpperCase()}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1 truncate">
+                      <span className="truncate">
+                        Shipped to:{" "}
+                        <strong className="text-slate-700 dark:text-zinc-300">
+                          {order.shippingAddress?.fullName || "N/A"}
+                        </strong>{" "}
+                        - {order.shippingAddress?.street}, {order.shippingAddress?.city}
+                      </span>
+                      {order.billingAddress && (
+                        <span className="truncate text-slate-400 dark:text-zinc-500">
+                          | Billing:{" "}
+                          <strong className="text-slate-600 dark:text-zinc-400">
+                            {order.billingAddress.fullName}
+                          </strong>{" "}
+                          ({order.billingAddress.city})
+                        </span>
+                      )}
+                    </div>
+                    <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-semibold">
+                      Pay via {order.paymentMethod ? order.paymentMethod.toUpperCase() : "CARD"}
                     </span>
                   </div>
                 </div>
