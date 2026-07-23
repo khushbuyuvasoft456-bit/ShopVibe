@@ -138,7 +138,8 @@ export default function CheckoutPage() {
   // Pre-fill address if authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      reset({
+      reset((prevValues) => ({
+        ...prevValues,
         shippingAddress: {
           fullName: user.shippingAddress?.fullName || "",
           phone: user.shippingAddress?.phone || "",
@@ -149,17 +150,15 @@ export default function CheckoutPage() {
           country: user.shippingAddress?.country || "United States",
         },
         billingAddress: {
-          fullName: user.billingAddress?.fullName || "",
-          phone: user.billingAddress?.phone || "",
-          street: user.billingAddress?.street || "",
-          city: user.billingAddress?.city || "",
-          state: user.billingAddress?.state || "",
-          zipCode: user.billingAddress?.zipCode || "",
+          fullName: user.billingAddress?.fullName || user.shippingAddress?.fullName || "",
+          phone: user.billingAddress?.phone || user.shippingAddress?.phone || "",
+          street: user.billingAddress?.street || user.shippingAddress?.street || "",
+          city: user.billingAddress?.city || user.shippingAddress?.city || "",
+          state: user.billingAddress?.state || user.shippingAddress?.state || "",
+          zipCode: user.billingAddress?.zipCode || user.shippingAddress?.zipCode || "",
           country: user.billingAddress?.country || "United States",
         },
-        sameAsBilling: watch("sameAsBilling") ?? true,
-        paymentMethod: watch("paymentMethod") ?? "card",
-      });
+      }));
     }
   }, [isAuthenticated, user, reset]);
 
@@ -170,8 +169,16 @@ export default function CheckoutPage() {
     // Simulate payment processing
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
+    const finalBillingAddress = data.sameAsBilling ? data.shippingAddress : data.billingAddress;
+
     // Add to auth store orders list
-    const orderResult = addOrder(items, totals, data.paymentMethod, data.shippingAddress);
+    const orderResult = addOrder(
+      items,
+      totals,
+      data.paymentMethod,
+      data.shippingAddress,
+      finalBillingAddress
+    );
     setPlacedOrder(orderResult);
     setIsSubmitting(false);
     clearCart(); // Clear cart state

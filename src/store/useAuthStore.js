@@ -163,7 +163,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const addOrder = (orderItems, totals, paymentMethod, address) => {
+  const addOrder = (orderItems, totals, paymentMethod, address, billingAddress) => {
     const newOrder = {
       id: "ORD-" + Math.floor(100000 + Math.random() * 900000),
       items: orderItems,
@@ -176,6 +176,7 @@ export function AuthProvider({ children }) {
       date: new Date().toISOString().split("T")[0],
       paymentMethod,
       shippingAddress: address,
+      billingAddress: billingAddress || address,
     };
 
     setOrders((prev) => [newOrder, ...prev]);

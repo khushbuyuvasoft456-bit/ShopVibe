@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { User, Phone, MapPin, CheckCircle, ShieldAlert } from "lucide-react";
+import { User, Phone, MapPin, CheckCircle, Receipt, Copy } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -10,7 +10,6 @@ import { useAuthStore } from "@/store/useAuthStore";
 import Input from "@/components/Input";
 import Button from "@/components/Button";
 import Breadcrumb from "@/components/Breadcrumb";
-
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 const profileSchema = z.object({
@@ -35,8 +34,13 @@ export default function ProfilePage() {
 
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
+  
   const [isUpdatingShipping, setIsUpdatingShipping] = useState(false);
   const [shippingSuccess, setShippingSuccess] = useState(false);
+
+  const [isUpdatingBilling, setIsUpdatingBilling] = useState(false);
+  const [billingSuccess, setBillingSuccess] = useState(false);
+  const [sameAsShipping, setSameAsShipping] = useState(false);
 
   // Forms setup
   const {
@@ -54,10 +58,30 @@ export default function ProfilePage() {
   });
 
   const {
-    register: registerAddress,
-    handleSubmit: handleAddressSubmit,
-    reset: resetAddress,
-    formState: { errors: addressErrors, touchedFields: addressTouched },
+    register: registerShipping,
+    handleSubmit: handleShippingSubmit,
+    reset: resetShipping,
+    getValues: getShippingValues,
+    formState: { errors: shippingErrors, touchedFields: shippingTouched },
+  } = useForm({
+    resolver: zodResolver(addressSchema),
+    mode: "onTouched",
+    defaultValues: {
+      fullName: "",
+      phone: "",
+      street: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      country: "United States",
+    }
+  });
+
+  const {
+    register: registerBilling,
+    handleSubmit: handleBillingSubmit,
+    reset: resetBilling,
+    formState: { errors: billingErrors, touchedFields: billingTouched },
   } = useForm({
     resolver: zodResolver(addressSchema),
     mode: "onTouched",
@@ -80,7 +104,7 @@ export default function ProfilePage() {
         phone: user.phone || "",
       });
       if (user.shippingAddress) {
-        resetAddress({
+        resetShipping({
           fullName: user.shippingAddress.fullName || "",
           phone: user.shippingAddress.phone || "",
           street: user.shippingAddress.street || "",
@@ -90,15 +114,23 @@ export default function ProfilePage() {
           country: user.shippingAddress.country || "United States",
         });
       }
+      if (user.billingAddress) {
+        resetBilling({
+          fullName: user.billingAddress.fullName || "",
+          phone: user.billingAddress.phone || "",
+          street: user.billingAddress.street || "",
+          city: user.billingAddress.city || "",
+          state: user.billingAddress.state || "",
+          zipCode: user.billingAddress.zipCode || "",
+          country: user.billingAddress.country || "United States",
+        });
+      }
     }
-  }, [user, resetProfile, resetAddress]);
-
+  }, [user, resetProfile, resetShipping, resetBilling]);
 
   const onProfileUpdate = async (data) => {
     setIsUpdatingProfile(true);
     setProfileSuccess(false);
-
-    // Simulate API update
     await new Promise((resolve) => setTimeout(resolve, 650));
     updateProfile({ name: data.name, phone: data.phone });
     setIsUpdatingProfile(false);
@@ -106,17 +138,34 @@ export default function ProfilePage() {
     setTimeout(() => setProfileSuccess(false), 3000);
   };
 
-  const onAddressUpdate = async (data) => {
+  const onShippingUpdate = async (data) => {
     setIsUpdatingShipping(true);
     setShippingSuccess(false);
-
-    // Simulate API update
     await new Promise((resolve) => setTimeout(resolve, 650));
     updateAddress("shipping", data);
-    updateAddress("billing", data); // Keep in sync for simple profile management
+    if (sameAsShipping) {
+      updateAddress("billing", data);
+      resetBilling(data);
+    }
     setIsUpdatingShipping(false);
     setShippingSuccess(true);
     setTimeout(() => setShippingSuccess(false), 3000);
+  };
+
+  const onBillingUpdate = async (data) => {
+    setIsUpdatingBilling(true);
+    setBillingSuccess(false);
+    await new Promise((resolve) => setTimeout(resolve, 650));
+    updateAddress("billing", data);
+    setIsUpdatingBilling(false);
+    setBillingSuccess(true);
+    setTimeout(() => setBillingSuccess(false), 3000);
+  };
+
+  const handleCopyShippingToBilling = () => {
+    const shippingValues = getShippingValues();
+    resetBilling(shippingValues);
+    setSameAsShipping(true);
   };
 
   return (
@@ -131,9 +180,9 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-6">
           {/* Left column: Profile details edit (5 cols) */}
           <div className="lg:col-span-5 flex flex-col gap-6">
-            <div className="border border-slate-105 dark:border-zinc-850 bg-white dark:bg-zinc-900 rounded-2xl p-5 sm:p-6 space-y-4">
+            <div className="border border-slate-100 dark:border-zinc-850 bg-white dark:bg-zinc-900 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm">
               <h3 className="font-bold text-slate-900 dark:text-zinc-50 text-lg flex items-center gap-2">
-                <User className="w-5 h-5 text-indigo-650" /> Personal Details
+                <User className="w-5 h-5 text-indigo-600" /> Personal Details
               </h3>
 
               {profileSuccess && (
@@ -159,7 +208,7 @@ export default function ProfilePage() {
                   placeholder="Email"
                   value={user?.email || ""}
                   disabled
-                  className="bg-slate-50 dark:bg-zinc-855 text-slate-400 cursor-not-allowed border-dashed"
+                                      className="bg-slate-50 dark:bg-zinc-855 text-slate-400 cursor-not-allowed border-dashed"
                 />
 
                 <Input
@@ -183,76 +232,75 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Right column: Default address settings (7 cols) */}
+          {/* Right column: Address Settings (Shipping + Billing forms) (7 cols) */}
           <div className="lg:col-span-7 flex flex-col gap-6">
-            <div className="border border-slate-105 dark:border-zinc-850 bg-white dark:bg-zinc-900 rounded-2xl p-5 sm:p-6 space-y-4">
+            {/* Shipping Address Container */}
+            <div className="border border-slate-100 dark:border-zinc-850 bg-white dark:bg-zinc-900 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm">
               <h3 className="font-bold text-slate-900 dark:text-zinc-50 text-lg flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-indigo-650" /> Default Address
+                <MapPin className="w-5 h-5 text-indigo-600" /> Default Shipping Address
               </h3>
-
               {shippingSuccess && (
-                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-455 border border-emerald-105 dark:border-emerald-900 text-xs font-bold rounded-xl flex items-center gap-1.5 animate-scale-in">
-                  <CheckCircle className="w-4 h-4" /> Address updated
-                  successfully!
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-455 border border-emerald-100 dark:border-emerald-900 text-xs font-bold rounded-xl flex items-center gap-1.5 animate-scale-in">
+                  <CheckCircle className="w-4 h-4" /> Shipping address updated successfully!
                 </div>
               )}
 
-              <form onSubmit={handleAddressSubmit(onAddressUpdate)} className="space-y-4">
+              <form onSubmit={handleShippingSubmit(onShippingUpdate)} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input
                     label="Contact Name"
                     placeholder="e.g. Jane Doe"
-                    error={addressErrors.fullName?.message}
-                    success={addressTouched.fullName && !addressErrors.fullName}
+                    error={shippingErrors.fullName?.message}
+                    success={shippingTouched.fullName && !shippingErrors.fullName}
                     required
-                    {...registerAddress("fullName")}
+                    {...registerShipping("fullName")}
                   />
 
                   <Input
                     label="Contact Phone"
                     placeholder="e.g. +1 (555) 019-2834"
-                    error={addressErrors.phone?.message}
-                    success={addressTouched.phone && !addressErrors.phone}
+                    error={shippingErrors.phone?.message}
+                    success={shippingTouched.phone && !shippingErrors.phone}
                     required
-                    {...registerAddress("phone")}
+                    {...registerShipping("phone")}
                   />
                 </div>
 
                 <Input
                   label="Street Address"
                   placeholder="e.g. 123 Market Street, Apt 4B"
-                  error={addressErrors.street?.message}
-                  success={addressTouched.street && !addressErrors.street}
+                  error={shippingErrors.street?.message}
+                  success={shippingTouched.street && !shippingErrors.street}
                   required
-                  {...registerAddress("street")}
+                  {...registerShipping("street")}
                 />
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   <Input
                     label="City"
                     placeholder="San Francisco"
-                    error={addressErrors.city?.message}
-                    success={addressTouched.city && !addressErrors.city}
+                    error={shippingErrors.city?.message}
+                    success={shippingTouched.city && !shippingErrors.city}
                     required
-                    {...registerAddress("city")}
+                    {...registerShipping("city")}
                   />
 
                   <Input
                     label="State"
                     placeholder="CA"
-                    error={addressErrors.state?.message}
-                    success={addressTouched.state && !addressErrors.state}
+                    error={shippingErrors.state?.message}
+                    success={shippingTouched.state && !shippingErrors.state}
                     required
-                    {...registerAddress("state")}
+                    {...registerShipping("state")}
                   />
 
                   <Input
                     label="ZIP Code"
                     placeholder="94103"
-                    error={addressErrors.zipCode?.message}
-                    success={addressTouched.zipCode && !addressErrors.zipCode}
+                    error={shippingErrors.zipCode?.message}
+                    success={shippingTouched.zipCode && !shippingErrors.zipCode}
                     required
-                    {...registerAddress("zipCode")}
+                    {...registerShipping("zipCode")}
                   />
                 </div>
 
@@ -261,7 +309,97 @@ export default function ProfilePage() {
                   isLoading={isUpdatingShipping}
                   className="w-full py-2.5 text-sm"
                 >
-                  Save Address Info
+                  Save Shipping Address
+                </Button>
+              </form>
+            </div>
+
+            {/* Billing Address Container */}
+            <div className="border border-slate-100 dark:border-zinc-850 bg-white dark:bg-zinc-900 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h3 className="font-bold text-slate-900 dark:text-zinc-50 text-lg flex items-center gap-2">
+                  <Receipt className="w-5 h-5 text-indigo-600" /> Billing Address Form
+                </h3>
+                <button
+                  type="button"
+                  onClick={handleCopyShippingToBilling}
+                  className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                >
+                  <Copy className="w-3.5 h-3.5" /> Copy from shipping address
+                </button>
+              </div>
+
+              {billingSuccess && (
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-455 border border-emerald-100 dark:border-emerald-900 text-xs font-bold rounded-xl flex items-center gap-1.5 animate-scale-in">
+                  <CheckCircle className="w-4 h-4" /> Billing address updated successfully!
+                </div>
+              )}
+
+              <form onSubmit={handleBillingSubmit(onBillingUpdate)} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Input
+                    label="Full Name"
+                    placeholder="e.g. Jane Doe"
+                    error={billingErrors.fullName?.message}
+                    success={billingTouched.fullName && !billingErrors.fullName}
+                    required
+                    {...registerBilling("fullName")}
+                  />
+
+                  <Input
+                    label="Phone Number"
+                    placeholder="e.g. +1 (555) 019-2834"
+                    error={billingErrors.phone?.message}
+                    success={billingTouched.phone && !billingErrors.phone}
+                    required
+                    {...registerBilling("phone")}
+                  />
+                </div>
+
+                <Input
+                  label="Street Address"
+                  placeholder="e.g. 123 Market Street, Apt 4B"
+                  error={billingErrors.street?.message}
+                  success={billingTouched.street && !billingErrors.street}
+                  required
+                  {...registerBilling("street")}
+                />
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <Input
+                    label="City"
+                    placeholder="San Francisco"
+                    error={billingErrors.city?.message}
+                    success={billingTouched.city && !billingErrors.city}
+                    required
+                    {...registerBilling("city")}
+                  />
+
+                  <Input
+                    label="State / Region"
+                    placeholder="CA"
+                    error={billingErrors.state?.message}
+                    success={billingTouched.state && !billingErrors.state}
+                    required
+                    {...registerBilling("state")}
+                  />
+
+                  <Input
+                    label="ZIP Code"
+                    placeholder="94103"
+                    error={billingErrors.zipCode?.message}
+                    success={billingTouched.zipCode && !billingErrors.zipCode}
+                    required
+                    {...registerBilling("zipCode")}
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  isLoading={isUpdatingBilling}
+                  className="w-full py-2.5 text-sm"
+                >
+                  Save Billing Address
                 </Button>
               </form>
             </div>
